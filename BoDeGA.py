@@ -17,14 +17,9 @@ Descriptions
 
 """
 
-# --- Global vars ---
-__API_KEY = "2224398867be11f4221a33549e4c16857bb3b4f3"
-__Issues_pulls = 20
-__Comments = 20
-__User = ''
-__Repository = ''
 
 # --- Prerequisites ---
+import pandas
 import numpy as np
 import pickle
 import threading
@@ -33,6 +28,7 @@ import itertools
 from sklearn.cluster import DBSCAN
 import json
 import os
+import dateutil
 try:
     from urllib.request import urlopen, Request
 except ImportError:
@@ -40,80 +36,197 @@ except ImportError:
 import argparse
 from tqdm import tqdm
 
+# --- Global vars ---
+__Repository = ''
+__Users = []
+__Date =  None
+__Verbose = False
+__Comments = 10
+__APIKEY = "2224398867be11f4221a33549e4c16857bb3b4f3"
+
+__Issues = True
+__Pulls = True
+
+__Savedata = 'csv'
+
 # --- Exception ---
 class BotDetectorError(ValueError):
     pass
 
 # --- Download comments ---
-def get_comment_search_query():
+def get_comment_search_query(pr, issue, beforePr, beforeIssue):
+    
+    owner = __Repository.split('/')[0]
+    name = __Repository.split('/')[1]
+
+    pulls = """
+        pullRequests(last:100 %s orderBy: {field: CREATED_AT, direction: ASC})
+        {
+        totalCount
+        pageInfo{
+                startCursor
+                endCursor
+        }
+        edges{
+            cursor
+            node{
+            author{
+                login
+            }
+            body
+            number
+            createdAt
+            comments(first:100)
+            {
+                totalCount
+                pageInfo{
+                    startCursor
+                    endCursor
+                }
+                edges{
+                cursor
+                node{
+                    author{
+                    login
+                    }
+                    body
+                    createdAt
+                }
+                }
+            }
+            }
+        }
+        }
+    """%('before:"'+beforePr+'"' if beforePr != None else '')
+
+    issues = """
+        issues(last:100 %s orderBy: {field: CREATED_AT, direction: ASC})
+        {
+        totalCount
+        pageInfo{
+                startCursor
+                endCursor
+        }
+        edges{
+            cursor
+            node{
+            author{
+                login
+            }
+            body
+            number
+            createdAt
+            comments(first:100)
+            {
+                pageInfo{
+                    startCursor
+                    endCursor
+                }
+                edges{
+                cursor
+                node{
+                    author{
+                    login
+                    }
+                    body
+                    createdAt
+                }
+                }
+            }
+            }
+        }
+        }
+    """%('before:"'+beforeIssue+'"' if beforeIssue != None else '')
+
     query = """
-    query{
-    search(first: %d, type: ISSUE, query: "repo:%s involves:%s") {
-        edges {
-        node {
-            ... on PullRequest {
-            author{
-                login
-            }
-            body
-            comments(first:%d)
-            {
-                edges{
-                node{
-                    author{
-                    login
-                    }
-                    body
-                }
-                }
-            }
-            }
-        }
-        node {
-            ... on Issue {
-            author{
-                login
-            }
-            body
-            comments(first:%d)
-            {
-                edges{
-                node{
-                    author{
-                    login
-                    }
-                    body
-                }
-                }
-            }
-            }
-        }
-        }
+    {
+    repository(owner:"%s", name:"%s"){
+        createdAt
+        %s
+        %s
     }
-    }"""%(__Issues_pulls,__Repository,__User, __Comments,__Comments)
+    }
+    """%(owner,name,(pulls if __Pulls and pr else ''), (issues if __Issues and issue else ''))
     return query
 
-def process_comments(response):
-    comments = []
-    json_object = json.loads(response)
-    if 'data' in json_object:
-        for edge in json_object["data"]["search"]["edges"]:
-            if edge['node']['author']['login'] == __User :
-                comments.append(edge['node']['body'])
-            if 'comments' in edge['node'] :    
-                for comment in edge['node']['comments']['edges'] :
-                    if comment['node']['author'] is not None :
-                        if comment['node']['author']['login'] == __User :
-                            comments.append(comment['node']['body'])
+def extract_data(data,issue_type='issues'):
+    df = pandas.DataFrame()
+    json_object = json.loads(data)
+    if 'data' not in json_object:
+        return
+    data = json_object["data"]["repository"]
+    issue_total = data[issue_type]['totalCount']
+    start_cursor = data[issue_type]['pageInfo']['startCursor']
+    end_cursor = data[issue_type]['pageInfo']['endCursor']
+    issue_count = len(data[issue_type]['edges'])
+    last_date = None
+    for issue in data[issue_type]['edges']:
+        issue = issue['node']
+        date = dateutil.parser.parse(issue['createdAt'],ignoretz=True)
+        if date > __Date:
+            df = df.append({
+                'author': (issue['author']['login'] if (issue['author'] !=None) else  np.nan),
+                'body':issue['body'],
+                'number':issue['number'],
+                'created_at': date,
+                'type':issue_type
+            },ignore_index=True)
+            for comment in issue['comments']['edges']:
+                comment = comment['node']
+                df = df.append({
+                    'author': (comment['author']['login'] if (comment['author'] != None) else  np.nan),
+                    'body':comment['body'],
+                    'number':issue['number'],
+                    'created_at': dateutil.parser.parse(comment['createdAt'],ignoretz=True),
+                    'type':issue_type+"_comment"
+                },ignore_index=True)
+        else:
+            last_date = date
+    print(start_cursor)
+    return df,issue_total,issue_count,start_cursor,last_date
+
+def process_comments():
+    comments = pandas.DataFrame()
+    pr=True
+    issue=True
+    beforePr=None
+    beforeIssue=None
+    while True:
+        data = download_comments(pr, issue, beforePr, beforeIssue);
+        
+        if pr:
+            df_pr,pr_total,pr_count,pr_end_cursor,last_pr = extract_data(data,'pullRequests');
+            comments = comments.append(df_pr,ignore_index=True)
+        if issue:
+            df_issues,issue_total,issue_count ,issue_end_cursor,last_issue = extract_data(data,'issues');
+            comments = comments.append(df_issues,ignore_index=True)
+
+        downloaded_issues = len(comments[lambda x: x['type'] == 'issues'].drop_duplicates('number'))
+        downloaded_prs = len(comments[lambda x: x['type'] == 'pullRequests'].drop_duplicates('number'))
+          
+        print(last_issue,last_pr)
+        
+        if last_issue == None and issue_total > downloaded_issues:
+            issue = True
+            beforeIssue = issue_end_cursor
+        else:
+            issue = False
+        if last_pr == None and pr_total > downloaded_prs:
+            pr = True
+            beforePr = pr_end_cursor
+        else:
+            pr = False
+            
+        if not issue and not pr:
+            break
     return comments
 
-def download_comments():
-    req = Request("https://api.github.com/graphql", json.dumps({"query": get_comment_search_query()}).encode('utf-8'))
+def download_comments(pr=True, issue=True, beforePr=None, beforeIssue=None):
+    req = Request("https://api.github.com/graphql", json.dumps({"query": get_comment_search_query(pr, issue, beforePr, beforeIssue)}).encode('utf-8'))
     req.add_header("Accept", "application/json")
     req.add_header("Content-Type", "application/json")
-    req.add_header("Authorization", "Bearer {}".format(__API_KEY))
+    req.add_header("Authorization", "Bearer {}".format(__APIKEY))
     response = urlopen(req)
-
     return response.read()
 
 # --- Text process and feature production ---
@@ -203,90 +316,86 @@ def run_function_in_thread(pbar, function,max_value, args=[], kwargs={}):
 
 def progress():
     pbar = tqdm(total=10,smoothing=1,bar_format='{desc}: {percentage:3.0f}%|{bar}')
-    tasks =['Downloading messages','Analyzing comments','Computing clusters','Generate features','Loading model','Prediction','Exporting result']
+    tasks =['Downloading comments','Computing clusters','Generate features','Loading model','Prediction','Exporting result']
     pbar.set_description(tasks[0])
-    response = run_function_in_thread(pbar,download_comments,1.5)
-
-    pbar.set_description(tasks[1])
-    comments = run_function_in_thread(pbar,process_comments,4.5,args=(response,))[:100]
+    response = run_function_in_thread(pbar,process_comments,4.5)
 
     if(len(comments)<10):
         pbar.close()
         raise BotDetectorError('Available comments are not enough for clustering. For clustering we need at least 10 comments')
 
-    pbar.set_description(tasks[2])
-    clusters, gini_clusters = run_function_in_thread(pbar,compute_clusters,7.5,args=(comments,))
+    # pbar.set_description(tasks[2])
+    # clusters, gini_clusters = run_function_in_thread(pbar,compute_clusters,7.5,args=(comments,))
 
-    pbar.set_description(tasks[3])
-    empty_comments = count_empty_comments(comments)
-    comments_count = len(comments)
-    pbar.n = 7.5
+    # pbar.set_description(tasks[3])
+    # empty_comments = count_empty_comments(comments)
+    # comments_count = len(comments)
+    # pbar.n = 7.5
 
-    pbar.set_description(tasks[4])
-    model = run_function_in_thread(pbar,load_model,8.5)
+    # pbar.set_description(tasks[4])
+    # model = run_function_in_thread(pbar,load_model,8.5)
 
-    pbar.set_description(tasks[5])
-    sample = np.array((comments_count,empty_comments,clusters,gini_clusters[0]),dtype=object).reshape(1,-1)
-    result = run_function_in_thread(pbar,predict,9,args=(model,sample))
+    # pbar.set_description(tasks[5])
+    # sample = np.array((comments_count,empty_comments,clusters,gini_clusters[0]),dtype=object).reshape(1,-1)
+    # result = run_function_in_thread(pbar,predict,9,args=(model,sample))
     
-    pbar.n =10
-    pbar.set_description(tasks[6])
-    pbar.close()
-    print('Comments: ',comments_count)
-    print('Empty comments: ',empty_comments)
-    print('Number of clusters: ',clusters)
-    print('Comments dispersion: ', gini_clusters[0])
-    print('------------------------------------------')
-    print('Prediction: ',result)
+    # pbar.n =10
+    # pbar.set_description(tasks[6])
+    # pbar.close()
+    # print('Comments: ',comments_count)
+    # print('Empty comments: ',empty_comments)
+    # print('Number of clusters: ',clusters)
+    # print('Comments dispersion: ', gini_clusters[0])
+    # print('------------------------------------------')
+    # print('Prediction: ',result)
 
 # --- cli ---
 def arg_parser():
     parser = argparse.ArgumentParser(description='BoDeGa - Bot detection in Github')
-    parser.add_argument('user', type=str, help='Paths to one or more git repositories')
-    parser.add_argument('-r','--repository', type=str, help='User login you want to check')
-    parser.add_argument('-p','--pullissue', type=int, required=False, default=20, help='Number of pull requests and issues to download')
-    parser.add_argument('-c','--comments', type=int, required=False, default=20, help='Number of comments of each pull request and issue to download')
-    parser.add_argument('-k','--apikey', metavar='APIKEY', type=str, default=__API_KEY, help='API key to download comments from api v4')
+    parser.add_argument('repository', help='Paths to a git repositories.')
+    parser.add_argument('-u','--users', required=False, default=list(), type=str , nargs='*', help='User login of one or more accounts. Example: -u mehdigolzadeh alexandredecan tommens')
+    parser.add_argument('-d','--date', type=lambda d: dateutil.parser.parse(d).date(), required=False, default=None, help='Date regarding the recency of comments (default to None)')
+    parser.add_argument('-v','--verbose', action='store_true', required=False, default=False, help='To have verbose')
+    parser.add_argument('-c','--comments', type=int, required=False, default=10, help='Minimum number of comments to analyze an account')
+    parser.add_argument('-k','--apikey', metavar='APIKEY', type=str, default=__APIKEY, help='API key to download comments from api v4')
 
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('--text', action='store_true', help='Print results as text.')
-    group.add_argument('--csv', action='store_true', help='Print results as csv.')
-    group.add_argument('--json', action='store_true', help='Print results as json.')
-    group.add_argument('--plot', nargs='?', const=True, help='Export results to a plot. Filepath can be optionaly specified.')
+    group1 = parser.add_mutually_exclusive_group()
+    group1.add_argument('--only-pulls', action='store_true', help='Only download pull comments.')
+    group1.add_argument('--only-issues', action='store_true', help='Only download issue comments.')
+
+    group2 = parser.add_mutually_exclusive_group()
+    group2.add_argument('--text', action='store_true', help='Print results as text.')
+    group2.add_argument('--csv', action='store_true', help='Print results as csv.')
+    group2.add_argument('--json', action='store_true', help='Print results as json.')
 
     return parser.parse_args()
 
 def cli():
-    global __User, __Repository,__Issues_pulls,__Comments,__API_KEY
-    cliargs = arg_parser()
+    global __Repository, __Users, __Date, __Verbose, __Comments, __APIKEY, __Issues, __Pulls, __Savedata
 
-    __User = cliargs.user
+    args = arg_parser()
+    print(args)
 
-    if cliargs.repository == '.':
-        raise BotDetectorError('A repository name is required to download comments. format(repository_owner/repository_name)')
-    else:
-        __Repository = cliargs.repository
+    __Repository = args.repository
 
-    if cliargs.pullissue > 100 :
-        raise BotDetectorError('Cannot download more than 100 Pull and Issues in 1 request.')
-    elif cliargs.pullissue < 1 :
-        raise BotDetectorError('You should download at least 1 issue and pull request.')
-    else:
-        __Issues_pulls = cliargs.pullissue
+    __Users = args.users
+
+    __Date = args.date
+    __Verbose = args.verbose
+
+    __Issues = not args.only_pulls
+    __Pulls = not args.only_issues
     
-    if cliargs.comments > 100 :
-        raise BotDetectorError('Cannot download more than 100 Comments in 1 request.')
-    elif cliargs.comments < 5 :
-        raise BotDetectorError('You should download at least 5 comments.')
+    if args.comments < 10 :
+        raise BotDetectorError('Minimum number of required comments for the model is 10.')
     else:
-        __Comments = cliargs.comments
+        __Comments = args.comments
     
-    if cliargs.apikey == '.':
+    if args.apikey == '.':
         raise BotDetectorError('An api key is required to start the process. Please read the documentation to know more about api key')
     else:
-        __API_KEY = cliargs.apikey
+        __APIKEY = args.apikey
 
-    # res = len()
     progress()
 
 if __name__ == '__main__':
