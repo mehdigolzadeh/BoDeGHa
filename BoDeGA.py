@@ -411,7 +411,6 @@ def cli():
     global __Repository, __Users, __Date, __Verbose, __Comments,__MaxComments, __APIKEY, __Issues, __Pulls, __Printdata
 
     args = arg_parser()
-    print(args)
 
     __Repository = args.repository
 
