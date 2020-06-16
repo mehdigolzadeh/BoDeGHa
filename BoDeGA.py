@@ -19,6 +19,7 @@ Descriptions
 
 
 # --- Prerequisites ---
+from multiprocessing import Pool
 import pandas
 import numpy as np
 import pickle
@@ -42,12 +43,13 @@ __Users = []
 __Date =  None
 __Verbose = False
 __Comments = 10
+__MaxComments = 100
 __APIKEY = "2224398867be11f4221a33549e4c16857bb3b4f3"
 
 __Issues = True
 __Pulls = True
 
-__Savedata = 'csv'
+__Printdata = 'csv'
 
 # --- Exception ---
 class BotDetectorError(ValueError):
@@ -163,13 +165,16 @@ def extract_data(data,issue_type='issues'):
     for issue in data[issue_type]['edges']:
         issue = issue['node']
         date = dateutil.parser.parse(issue['createdAt'],ignoretz=True)
+        if date == None:
+            continue
         if date > __Date:
             df = df.append({
                 'author': (issue['author']['login'] if (issue['author'] !=None) else  np.nan),
-                'body':issue['body'],
+                'body':(issue['body'] if issue['body']!=None else ""),
                 'number':issue['number'],
                 'created_at': date,
-                'type':issue_type
+                'type':issue_type,
+                'empty':(1 if len(issue['body'])<2 else 0)
             },ignore_index=True)
             for comment in issue['comments']['edges']:
                 comment = comment['node']
@@ -178,11 +183,11 @@ def extract_data(data,issue_type='issues'):
                     'body':comment['body'],
                     'number':issue['number'],
                     'created_at': dateutil.parser.parse(comment['createdAt'],ignoretz=True),
-                    'type':issue_type+"_comment"
+                    'type':issue_type+"_comment",
+                    'empty':(1 if len(comment['body'])<2 else 0)
                 },ignore_index=True)
         else:
             last_date = date
-    print(start_cursor)
     return df,issue_total,issue_count,start_cursor,last_date
 
 def process_comments():
@@ -204,8 +209,6 @@ def process_comments():
         downloaded_issues = len(comments[lambda x: x['type'] == 'issues'].drop_duplicates('number'))
         downloaded_prs = len(comments[lambda x: x['type'] == 'pullRequests'].drop_duplicates('number'))
           
-        print(last_issue,last_pr)
-        
         if last_issue == None and issue_total > downloaded_issues:
             issue = True
             beforeIssue = issue_end_cursor
@@ -296,10 +299,33 @@ def load_model():
         model = pickle.load(file)
     return model
 
-def predict(model,sample):
-    return 'Bot' if model.predict(sample)[0] == 1 else 'Human'
+def predict(model,df):
+    df = (
+        df
+        .assign(
+            account_type =lambda x: np.where(model.predict(x[['comments','empty_comments','clusters','gini']]) == 1,'Bot', 'Human')
+        )
+    )
+    return df
 
 # --- Thread and progress ---
+
+def task(data):
+    author, group, params = data
+    group = group[:__MaxComments]
+    clustering = DBSCAN(eps=params['eps'], min_samples=1, metric='precomputed')
+    items = compute_distance(getattr(group, params['source']), params['func'])
+    clusters = clustering.fit_predict(items)
+    empty_comments = np.count_nonzero(group['empty'])
+    
+    return (
+        author,
+        len(group),
+        empty_comments,
+        len(np.unique(clusters)),
+        gini(items[pandas.np.tril(items).astype(bool)]),
+    )
+
 def run_function_in_thread(pbar, function,max_value, args=[], kwargs={}):
     ret = [None]
     def myrunner(function, ret, *args, **kwargs):
@@ -308,55 +334,66 @@ def run_function_in_thread(pbar, function,max_value, args=[], kwargs={}):
     thread = threading.Thread(target=myrunner, args=(function, ret) + tuple(args), kwargs=kwargs)
     thread.start()
     while thread.is_alive():
-        thread.join(timeout=.2)
+        thread.join(timeout=.1)
         if(pbar.n<max_value):
-            pbar.update(.2)
+            pbar.update(.1)
     pbar.n = max_value
     return ret[0]
 
 def progress():
-    pbar = tqdm(total=10,smoothing=1,bar_format='{desc}: {percentage:3.0f}%|{bar}')
-    tasks =['Downloading comments','Computing clusters','Generate features','Loading model','Prediction','Exporting result']
-    pbar.set_description(tasks[0])
-    response = run_function_in_thread(pbar,process_comments,4.5)
+    download_progress = tqdm(total=25,desc='Downloading comments',smoothing=.1,bar_format='{desc}: {percentage:3.0f}%|{bar}')
+    comments = run_function_in_thread(download_progress,process_comments,25)
+    download_progress.close()
 
-    if(len(comments)<10):
-        pbar.close()
-        raise BotDetectorError('Available comments are not enough for clustering. For clustering we need at least 10 comments')
+    df = (
+        comments
+        [comments['author'].isin(
+            comments
+            .groupby('author',as_index=False)
+            .count()[lambda x: x['body']>=10]['author'].values
+        )]
+        .sort_values('created_at',ascending=False)
+    )
 
-    # pbar.set_description(tasks[2])
-    # clusters, gini_clusters = run_function_in_thread(pbar,compute_clusters,7.5,args=(comments,))
+    if(len(df)<1):
+        raise BotDetectorError('Available comments are not enough to predict type of accounts')
 
-    # pbar.set_description(tasks[3])
-    # empty_comments = count_empty_comments(comments)
-    # comments_count = len(comments)
-    # pbar.n = 7.5
-
-    # pbar.set_description(tasks[4])
-    # model = run_function_in_thread(pbar,load_model,8.5)
-
-    # pbar.set_description(tasks[5])
-    # sample = np.array((comments_count,empty_comments,clusters,gini_clusters[0]),dtype=object).reshape(1,-1)
-    # result = run_function_in_thread(pbar,predict,9,args=(model,sample))
+    inputs = []
+    for author, group in df.groupby('author'):
+        inputs.append((author, group.copy(), {'func': average_jac_lev, 'source': 'body', 'eps': 0.5}))
+            
+    data = []
+    with Pool() as pool:
+        for result in tqdm(pool.imap_unordered(task, inputs),desc='Computing features',total=len(inputs),smoothing=.1,bar_format='{desc}: {percentage:3.0f}%|{bar}'):
+            data.append(result)
+            
+    df_clusters = pandas.DataFrame(data=data, columns=['account', 'comments','empty_comments', 'clusters', 'gini'])
     
-    # pbar.n =10
-    # pbar.set_description(tasks[6])
-    # pbar.close()
-    # print('Comments: ',comments_count)
-    # print('Empty comments: ',empty_comments)
-    # print('Number of clusters: ',clusters)
-    # print('Comments dispersion: ', gini_clusters[0])
-    # print('------------------------------------------')
-    # print('Prediction: ',result)
+    prediction_progress = tqdm(total=25,smoothing=.1,bar_format='{desc}: {percentage:3.0f}%|{bar}')
+    tasks =['Loading model','Making prediction','Exporting result']
+    prediction_progress.set_description(tasks[0])
+    model = run_function_in_thread(prediction_progress,load_model,5)
+
+    prediction_progress.set_description(tasks[1])
+    result = run_function_in_thread(prediction_progress,predict,25,args=(model,df_clusters))
+    prediction_progress.close()
+
+    if __Printdata == 'json':
+        print(result.to_json(orient='records'))
+    elif __Printdata == 'csv':
+        print(result.to_csv())
+    else:
+        print(result)
 
 # --- cli ---
 def arg_parser():
     parser = argparse.ArgumentParser(description='BoDeGa - Bot detection in Github')
     parser.add_argument('repository', help='Paths to a git repositories.')
     parser.add_argument('-u','--users', required=False, default=list(), type=str , nargs='*', help='User login of one or more accounts. Example: -u mehdigolzadeh alexandredecan tommens')
-    parser.add_argument('-d','--date', type=lambda d: dateutil.parser.parse(d).date(), required=False, default=None, help='Date regarding the recency of comments (default to None)')
+    parser.add_argument('-d','--date', type=lambda d: dateutil.parser.parse(d), required=False, default=None, help='Date regarding the recency of comments (default to None)')
     parser.add_argument('-v','--verbose', action='store_true', required=False, default=False, help='To have verbose')
     parser.add_argument('-c','--comments', type=int, required=False, default=10, help='Minimum number of comments to analyze an account')
+    parser.add_argument('-m','--maximum-comments', type=int, required=False, default=100, help='Maximum number of comments to be used (default=100)')
     parser.add_argument('-k','--apikey', metavar='APIKEY', type=str, default=__APIKEY, help='API key to download comments from api v4')
 
     group1 = parser.add_mutually_exclusive_group()
@@ -371,7 +408,7 @@ def arg_parser():
     return parser.parse_args()
 
 def cli():
-    global __Repository, __Users, __Date, __Verbose, __Comments, __APIKEY, __Issues, __Pulls, __Savedata
+    global __Repository, __Users, __Date, __Verbose, __Comments,__MaxComments, __APIKEY, __Issues, __Pulls, __Printdata
 
     args = arg_parser()
     print(args)
@@ -390,12 +427,23 @@ def cli():
         raise BotDetectorError('Minimum number of required comments for the model is 10.')
     else:
         __Comments = args.comments
+
+    if args.maximum_comments < 10 :
+        raise BotDetectorError('Maximum number of comments cannot be less than 10.')
+    else:
+        __MaxComments = args.maximum_comments
     
     if args.apikey == '.':
         raise BotDetectorError('An api key is required to start the process. Please read the documentation to know more about api key')
     else:
         __APIKEY = args.apikey
 
+    if args.csv :
+        __Printdata = 'csv'
+    elif args.json :
+        __Printdata = 'json'
+    else:
+        __Printdata = 'text'
     progress()
 
 if __name__ == '__main__':
