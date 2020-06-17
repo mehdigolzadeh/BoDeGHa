@@ -30,6 +30,8 @@ from sklearn.cluster import DBSCAN
 import json
 import os
 import dateutil
+from dateutil.relativedelta import *
+from datetime import *
 try:
     from urllib.request import urlopen, Request
 except ImportError:
@@ -416,7 +418,12 @@ def cli():
 
     __Users = args.users
 
-    __Date = args.date
+    if __Date == None:
+        __Date = datetime.now()+relativedelta(months=-6)
+    else:
+        __Date = args.date
+    print(__Date)
+
     __Verbose = args.verbose
 
     __Issues = not args.only_pulls
