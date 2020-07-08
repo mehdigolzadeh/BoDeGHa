@@ -1,67 +1,51 @@
-##  Module botdetector.py
-##
-##  Copyright (c) 2020 Mehdi Golzadeh <golzadeh.mehdi@gmail.com>.
-##
-##  Licensed under GNU Lesser General Public License version 3.0 (LGPL3);
-##  you may not use this file except in compliance with the License.
-##
-##  Unless required by applicable law or agreed to in writing, software
-##  distributed under the License is distributed on an "AS IS" BASIS,
-##  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-##  See the License for the specific language governing permissions and
-##  limitations under the License.
+#  Module bodega.py
+#
+#  Copyright (c) 2020 Mehdi Golzadeh <golzadeh.mehdi@gmail.com>.
+#
+#  Licensed under GNU Lesser General Public License version 3.0 (LGPL3);
+#  you may not use this file except in compliance with the License.
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
 
 
 """
 Descriptions
-
 """
 
 
 # --- Prerequisites ---
 from multiprocessing import Pool
 import pandas
-import numpy as np
 import pickle
 import threading
 from Levenshtein import distance as lev
 import itertools
 from sklearn.cluster import DBSCAN
 import json
-import os
+import sys
 import dateutil
-from dateutil.relativedelta import *
-from datetime import *
+from dateutil.relativedelta import relativedelta
+from datetime import datetime
 try:
     from urllib.request import urlopen, Request
 except ImportError:
     from urllib2 import urlopen, Request
 import argparse
 from tqdm import tqdm
-
-# --- Global vars ---
-__Repository = ''
-__Users = []
-__Date =  None
-__Verbose = False
-__Comments = 10
-__MaxComments = 100
-__APIKEY = "2224398867be11f4221a33549e4c16857bb3b4f3"
-
-__Issues = True
-__Pulls = True
-
-__Printdata = 'csv'
+np = pandas.np
 
 # --- Exception ---
-class BotDetectorError(ValueError):
+class BodegaError(ValueError):
     pass
 
 # --- Download comments ---
-def get_comment_search_query(pr, issue, beforePr, beforeIssue):
+def get_comment_search_query(repository,pr, issue, beforePr, beforeIssue):
     
-    owner = __Repository.split('/')[0]
-    name = __Repository.split('/')[1]
+    owner,name = repository.split('/')
 
     pulls = """
         pullRequests(last:100 %s orderBy: {field: CREATED_AT, direction: ASC})
@@ -150,10 +134,10 @@ def get_comment_search_query(pr, issue, beforePr, beforeIssue):
         %s
     }
     }
-    """%(owner,name,(pulls if __Pulls and pr else ''), (issues if __Issues and issue else ''))
+    """%(owner,name,(pulls if pr else ''), (issues if issue else ''))
     return query
 
-def extract_data(data,issue_type='issues'):
+def extract_data(data,date_limit,issue_type='issues'):
     df = pandas.DataFrame()
     json_object = json.loads(data)
     if 'data' not in json_object:
@@ -169,7 +153,7 @@ def extract_data(data,issue_type='issues'):
         date = dateutil.parser.parse(issue['createdAt'],ignoretz=True)
         if date == None:
             continue
-        if date > __Date:
+        if date > date_limit:
             df = df.append({
                 'author': (issue['author']['login'] if (issue['author'] !=None) else  np.nan),
                 'body':(issue['body'] if issue['body']!=None else ""),
@@ -192,20 +176,20 @@ def extract_data(data,issue_type='issues'):
             last_date = date
     return df,issue_total,issue_count,start_cursor,last_date
 
-def process_comments():
+def process_comments(repository,users,date,min_comments,max_comments,apikey):
     comments = pandas.DataFrame()
     pr=True
     issue=True
     beforePr=None
     beforeIssue=None
     while True:
-        data = download_comments(pr, issue, beforePr, beforeIssue);
+        data = download_comments(repository,apikey,pr, issue, beforePr, beforeIssue);
         
         if pr:
-            df_pr,pr_total,pr_count,pr_end_cursor,last_pr = extract_data(data,'pullRequests');
+            df_pr,pr_total,pr_count,pr_end_cursor,last_pr = extract_data(data,date,'pullRequests');
             comments = comments.append(df_pr,ignore_index=True)
         if issue:
-            df_issues,issue_total,issue_count ,issue_end_cursor,last_issue = extract_data(data,'issues');
+            df_issues,issue_total,issue_count ,issue_end_cursor,last_issue = extract_data(data,date,'issues');
             comments = comments.append(df_issues,ignore_index=True)
 
         downloaded_issues = len(comments[lambda x: x['type'] == 'issues'].drop_duplicates('number'))
@@ -226,11 +210,11 @@ def process_comments():
             break
     return comments
 
-def download_comments(pr=True, issue=True, beforePr=None, beforeIssue=None):
-    req = Request("https://api.github.com/graphql", json.dumps({"query": get_comment_search_query(pr, issue, beforePr, beforeIssue)}).encode('utf-8'))
+def download_comments(repository,apikey,pr=True, issue=True, beforePr=None, beforeIssue=None):
+    req = Request("https://api.github.com/graphql", json.dumps({"query": get_comment_search_query(repository,pr, issue, beforePr, beforeIssue)}).encode('utf-8'))
     req.add_header("Accept", "application/json")
     req.add_header("Content-Type", "application/json")
-    req.add_header("Authorization", "Bearer {}".format(__APIKEY))
+    req.add_header("Authorization", "Bearer {}".format(apikey))
     response = urlopen(req)
     return response.read()
 
@@ -295,7 +279,7 @@ def count_empty_comments(comments):
     return empty_comments
 
 # --- Load model and prediction ---
-def load_model():
+def get_model():
     filename = "model.pkl"
     with open(filename, 'rb') as file:
         model = pickle.load(file)
@@ -313,8 +297,8 @@ def predict(model,df):
 # --- Thread and progress ---
 
 def task(data):
-    author, group, params = data
-    group = group[:__MaxComments]
+    author, group ,max_comments, params = data
+    group = group[:max_comments]
     clustering = DBSCAN(eps=params['eps'], min_samples=1, metric='precomputed')
     items = compute_distance(getattr(group, params['source']), params['func'])
     clusters = clustering.fit_predict(items)
@@ -342,9 +326,9 @@ def run_function_in_thread(pbar, function,max_value, args=[], kwargs={}):
     pbar.n = max_value
     return ret[0]
 
-def progress():
+def progress(repository,users,date,verbose,min_comments,max_comments,apikey,output_type):
     download_progress = tqdm(total=25,desc='Downloading comments',smoothing=.1,bar_format='{desc}: {percentage:3.0f}%|{bar}')
-    comments = run_function_in_thread(download_progress,process_comments,25)
+    comments = run_function_in_thread(download_progress,process_comments,25,args=[repository,users,date,min_comments,max_comments,apikey])
     download_progress.close()
 
     df = (
@@ -352,17 +336,19 @@ def progress():
         [comments['author'].isin(
             comments
             .groupby('author',as_index=False)
-            .count()[lambda x: x['body']>=10]['author'].values
+            .count()[lambda x: x['body']>=min_comments]['author'].values
         )]
         .sort_values('created_at',ascending=False)
     )
+    if users != []:
+        df = df[lambda x: x['author'].isin(users)]
 
     if(len(df)<1):
-        raise BotDetectorError('Available comments are not enough to predict type of accounts')
+        raise BodegaError('Available comments are not enough to predict the type of accounts')
 
     inputs = []
     for author, group in df.groupby('author'):
-        inputs.append((author, group.copy(), {'func': average_jac_lev, 'source': 'body', 'eps': 0.5}))
+        inputs.append((author, group.copy(),max_comments, {'func': average_jac_lev, 'source': 'body', 'eps': 0.5}))
             
     data = []
     with Pool() as pool:
@@ -374,33 +360,29 @@ def progress():
     prediction_progress = tqdm(total=25,smoothing=.1,bar_format='{desc}: {percentage:3.0f}%|{bar}')
     tasks =['Loading model','Making prediction','Exporting result']
     prediction_progress.set_description(tasks[0])
-    model = run_function_in_thread(prediction_progress,load_model,5)
+    model = run_function_in_thread(prediction_progress,get_model,5)
 
     prediction_progress.set_description(tasks[1])
     result = run_function_in_thread(prediction_progress,predict,25,args=(model,df_clusters))
     prediction_progress.close()
 
-    if __Printdata == 'json':
-        print(result.to_json(orient='records'))
-    elif __Printdata == 'csv':
-        print(result.to_csv())
+    if output_type == 'json':
+        return (result.to_json(orient='records'))
+    elif output_type == 'csv':
+        return (result.to_csv())
     else:
-        print(result)
+        return (result)
 
 # --- cli ---
 def arg_parser():
     parser = argparse.ArgumentParser(description='BoDeGa - Bot detection in Github')
-    parser.add_argument('repository', help='Paths to a git repositories.')
-    parser.add_argument('-u','--users', required=False, default=list(), type=str , nargs='*', help='User login of one or more accounts. Example: -u mehdigolzadeh alexandredecan tommens')
+    parser.add_argument('repository', help='Name of a repository on GitHub ("owner/repo")')
+    parser.add_argument('--users', required=False, default=list(), type=str , nargs='*', help='User login of one or more accounts. Example: -u mehdigolzadeh alexandredecan tommens')
     parser.add_argument('-d','--date', type=lambda d: dateutil.parser.parse(d), required=False, default=None, help='Date regarding the recency of comments (default to None)')
     parser.add_argument('-v','--verbose', action='store_true', required=False, default=False, help='To have verbose')
-    parser.add_argument('-c','--comments', type=int, required=False, default=10, help='Minimum number of comments to analyze an account')
-    parser.add_argument('-m','--maximum-comments', type=int, required=False, default=100, help='Maximum number of comments to be used (default=100)')
-    parser.add_argument('-k','--apikey', metavar='APIKEY', type=str, default=__APIKEY, help='API key to download comments from api v4')
-
-    group1 = parser.add_mutually_exclusive_group()
-    group1.add_argument('--only-pulls', action='store_true', help='Only download pull comments.')
-    group1.add_argument('--only-issues', action='store_true', help='Only download issue comments.')
+    parser.add_argument('-c','--min-comments', type=int, required=False, default=10, help='Minimum number of comments to analyze an account')
+    parser.add_argument('--max-comments', type=int, required=False, default=100, help='Maximum number of comments to be used (default=100)')
+    parser.add_argument('--key', metavar='APIKEY', type=str, default='', help='GitHub APIv4 key to download comments from GitHub GraphQL API')
 
     group2 = parser.add_mutually_exclusive_group()
     group2.add_argument('--text', action='store_true', help='Print results as text.')
@@ -410,47 +392,38 @@ def arg_parser():
     return parser.parse_args()
 
 def cli():
-    global __Repository, __Users, __Date, __Verbose, __Comments,__MaxComments, __APIKEY, __Issues, __Pulls, __Printdata
-
     args = arg_parser()
 
-    __Repository = args.repository
-
-    __Users = args.users
-
-    if __Date == None:
-        __Date = datetime.now()+relativedelta(months=-6)
+    date = datetime.now()+relativedelta(months=-6)
+    if args.date != None:
+        date = args.date
+        
+    if args.min_comments < 10 :
+        sys.exit('Minimum number of required comments for the model is 10.')
     else:
-        __Date = args.date
-    print(__Date)
+        min_comments = args.min_comments
 
-    __Verbose = args.verbose
-
-    __Issues = not args.only_pulls
-    __Pulls = not args.only_issues
+    if args.max_comments < 10 :
+        sys.exit('Maximum number of comments cannot be less than 10.')
+    else:
+        max_comments = args.max_comments
     
-    if args.comments < 10 :
-        raise BotDetectorError('Minimum number of required comments for the model is 10.')
+    if args.key == '':
+        sys.exit('A GitHub API key is required to start the process. Please read the documentation to know more about GitHub APIv4 key')
     else:
-        __Comments = args.comments
-
-    if args.maximum_comments < 10 :
-        raise BotDetectorError('Maximum number of comments cannot be less than 10.')
-    else:
-        __MaxComments = args.maximum_comments
-    
-    if args.apikey == '.':
-        raise BotDetectorError('An api key is required to start the process. Please read the documentation to know more about api key')
-    else:
-        __APIKEY = args.apikey
+        apikey = args.key
 
     if args.csv :
-        __Printdata = 'csv'
+        output_type = 'csv'
     elif args.json :
-        __Printdata = 'json'
+        output_type = 'json'
     else:
-        __Printdata = 'text'
-    progress()
+        output_type = 'text'
+    
+    try:
+        print(progress(args.repository,args.users,date,args.verbose,min_comments,max_comments,apikey,output_type))
+    except BodegaError as e:
+        sys.exit(e)
 
 if __name__ == '__main__':
     cli()

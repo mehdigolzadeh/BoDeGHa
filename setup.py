@@ -3,8 +3,8 @@ from setuptools import setup
 from codecs import open # To use a consistent encoding
 
 
-__package__ = 'botdetector'
-__version__ = '0.0.0'
+__package__ = 'BoDeGA'
+__version__ = '0.0.1'
 __licence__ = 'LGPL3'
 __maintainer__ = 'Mehdi Golzadeh'
 __email__ = 'golzadeh.mehdi@gmail.com'
@@ -27,11 +27,17 @@ __classifiers__=[
 
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.6',
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.5',
     ]
-__requirement__ = ['not listed yet']
+__requirement__ = [
+        'python-dateutil >= 2.7.5',
+        'pandas >= 0.23.4',
+        'sklearn >= 0.22',
+        'json >= 2.0.9',
+        'argparse >= 1.1',
+        'tqdm >= 4.41.1',
+        'urllib.request >= 3.7'
+]
 
 
 setup(
@@ -71,15 +77,6 @@ setup(
     # https://packaging.python.org/en/latest/technical.html#install-requires-vs-requirements-files
     install_requires = __requirement__,
 
-    # Tests
-    #
-    # Tests must be wrapped in a unittest test suite by either a
-    # function, a TestCase class or method, or a module or package
-    # containing TestCase classes. If the named suite is a package,
-    # any submodules and subpackages are recursively added to the
-    # overall test suite.
-    test_suite = 'no test suite',
-
     # If there are data files included in your packages that need to be
     # installed, specify them here.  If using Python 2.6 or less, then these
     # have to be included in MANIFEST.in as well.
@@ -102,4 +99,13 @@ setup(
     #         'command=module:main',
     #     ],
     # },
+
+    entry_points={
+        'console_scripts': [
+            'bodega=bodega:cli',
+        ]
+    },
+
+    py_modules=['bodega'],
+    zip_safe=True,
 )
