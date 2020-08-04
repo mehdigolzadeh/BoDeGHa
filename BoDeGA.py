@@ -176,7 +176,7 @@ def extract_data(data,date_limit,issue_type='issues'):
             last_date = date
     return df,issue_total,issue_count,start_cursor,last_date
 
-def process_comments(repository,users,date,min_comments,max_comments,apikey):
+def process_comments(repository,accounts,date,min_comments,max_comments,apikey):
     comments = pandas.DataFrame()
     pr=True
     issue=True
@@ -262,7 +262,7 @@ def gini(x):
     mad = np.abs(np.subtract.outer(x, x)).mean()
     rmad = mad/np.mean(x)
     g = 0.5 * rmad
-    return g
+    return round(g, 3)
 
 def compute_clusters(itemsarr):
     clustering = DBSCAN( 0.5, min_samples=1, metric='precomputed')
@@ -289,7 +289,7 @@ def predict(model,df):
     df = (
         df
         .assign(
-            account_type =lambda x: np.where(model.predict(x[['comments','empty_comments','clusters','gini']]) == 1,'Bot', 'Human')
+            prediction =lambda x: np.where(model.predict(x[['comments','empty comments','patterns','dispersion']]) == 1,'Bot', 'Human')
         )
     )
     return df
@@ -326,9 +326,9 @@ def run_function_in_thread(pbar, function,max_value, args=[], kwargs={}):
     pbar.n = max_value
     return ret[0]
 
-def progress(repository,users,date,verbose,min_comments,max_comments,apikey,output_type):
-    download_progress = tqdm(total=25,desc='Downloading comments',smoothing=.1,bar_format='{desc}: {percentage:3.0f}%|{bar}')
-    comments = run_function_in_thread(download_progress,process_comments,25,args=[repository,users,date,min_comments,max_comments,apikey])
+def progress(repository,accounts,date,verbose,min_comments,max_comments,apikey,output_type):
+    download_progress = tqdm(total=25,desc='Downloading comments',smoothing=.1,bar_format='{desc}: {percentage:3.0f}%|{bar}',leave=False)
+    comments = run_function_in_thread(download_progress,process_comments,25,args=[repository,accounts,date,min_comments,max_comments,apikey])
     download_progress.close()
 
     df = (
@@ -340,8 +340,8 @@ def progress(repository,users,date,verbose,min_comments,max_comments,apikey,outp
         )]
         .sort_values('created_at',ascending=False)
     )
-    if users != []:
-        df = df[lambda x: x['author'].isin(users)]
+    if accounts != []:
+        df = df[lambda x: x['author'].isin(accounts)]
 
     if(len(df)<1):
         raise BodegaError('Available comments are not enough to predict the type of accounts')
@@ -352,18 +352,19 @@ def progress(repository,users,date,verbose,min_comments,max_comments,apikey,outp
             
     data = []
     with Pool() as pool:
-        for result in tqdm(pool.imap_unordered(task, inputs),desc='Computing features',total=len(inputs),smoothing=.1,bar_format='{desc}: {percentage:3.0f}%|{bar}'):
+        for result in tqdm(pool.imap_unordered(task, inputs),desc='Computing features',total=len(inputs),smoothing=.1,bar_format='{desc}: {percentage:3.0f}%|{bar}',leave=False):
             data.append(result)
             
-    df_clusters = pandas.DataFrame(data=data, columns=['account', 'comments','empty_comments', 'clusters', 'gini'])
+    df_clusters = pandas.DataFrame(data=data, columns=['account', 'comments','empty comments', 'patterns', 'dispersion'])
     
-    prediction_progress = tqdm(total=25,smoothing=.1,bar_format='{desc}: {percentage:3.0f}%|{bar}')
+    prediction_progress = tqdm(total=25,smoothing=.1,bar_format='{desc}: {percentage:3.0f}%|{bar}',leave=False)
     tasks =['Loading model','Making prediction','Exporting result']
     prediction_progress.set_description(tasks[0])
     model = run_function_in_thread(prediction_progress,get_model,5)
 
     prediction_progress.set_description(tasks[1])
     result = run_function_in_thread(prediction_progress,predict,25,args=(model,df_clusters))
+    result = result.set_index('account').sort_values(['prediction','account'])
     prediction_progress.close()
 
     if output_type == 'json':
@@ -377,12 +378,12 @@ def progress(repository,users,date,verbose,min_comments,max_comments,apikey,outp
 def arg_parser():
     parser = argparse.ArgumentParser(description='BoDeGa - Bot detection in Github')
     parser.add_argument('repository', help='Name of a repository on GitHub ("owner/repo")')
-    parser.add_argument('--users', required=False, default=list(), type=str , nargs='*', help='User login of one or more accounts. Example: -u mehdigolzadeh alexandredecan tommens')
+    parser.add_argument('--accounts', required=False, default=list(), type=str , nargs='*', help='User login of one or more accounts. Example: --accounts mehdigolzadeh alexandredecan tommens')
     parser.add_argument('-d','--date', type=lambda d: dateutil.parser.parse(d), required=False, default=None, help='Date regarding the recency of comments (default to None)')
-    parser.add_argument('-v','--verbose', action='store_true', required=False, default=False, help='To have verbose')
+    parser.add_argument('-v','--verbose', required=False, default=False, help='To have verbose ')
     parser.add_argument('-c','--min-comments', type=int, required=False, default=10, help='Minimum number of comments to analyze an account')
     parser.add_argument('--max-comments', type=int, required=False, default=100, help='Maximum number of comments to be used (default=100)')
-    parser.add_argument('--key', metavar='APIKEY', type=str, default='', help='GitHub APIv4 key to download comments from GitHub GraphQL API')
+    parser.add_argument('--key', metavar='APIKEY',required=True, type=str, default='', help='GitHub APIv4 key to download comments from GitHub GraphQL API')
 
     group2 = parser.add_mutually_exclusive_group()
     group2.add_argument('--text', action='store_true', help='Print results as text.')
@@ -408,7 +409,7 @@ def cli():
     else:
         max_comments = args.max_comments
     
-    if args.key == '':
+    if args.key == '' or len(args.key)< 35:
         sys.exit('A GitHub API key is required to start the process. Please read the documentation to know more about GitHub APIv4 key')
     else:
         apikey = args.key
@@ -421,7 +422,7 @@ def cli():
         output_type = 'text'
     
     try:
-        print(progress(args.repository,args.users,date,args.verbose,min_comments,max_comments,apikey,output_type))
+        print(progress(args.repository,args.accounts,date,args.verbose,min_comments,max_comments,apikey,output_type))
     except BodegaError as e:
         sys.exit(e)
 
