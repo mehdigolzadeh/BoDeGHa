@@ -331,6 +331,9 @@ def progress(repository,accounts,date,verbose,min_comments,max_comments,apikey,o
     comments = run_function_in_thread(download_progress,process_comments,25,args=[repository,accounts,date,min_comments,max_comments,apikey])
     download_progress.close()
 
+    if len(comments)<1:
+        raise BodegaError('Available comments are not enough to predict the type of accounts')
+
     df = (
         comments
         [comments['author'].isin(
@@ -354,7 +357,7 @@ def progress(repository,accounts,date,verbose,min_comments,max_comments,apikey,o
     with Pool() as pool:
         for result in tqdm(pool.imap_unordered(task, inputs),desc='Computing features',total=len(inputs),smoothing=.1,bar_format='{desc}: {percentage:3.0f}%|{bar}',leave=False):
             data.append(result)
-            
+    
     df_clusters = pandas.DataFrame(data=data, columns=['account', 'comments','empty comments', 'patterns', 'dispersion'])
     
     prediction_progress = tqdm(total=25,smoothing=.1,bar_format='{desc}: {percentage:3.0f}%|{bar}',leave=False)
@@ -364,7 +367,10 @@ def progress(repository,accounts,date,verbose,min_comments,max_comments,apikey,o
 
     prediction_progress.set_description(tasks[1])
     result = run_function_in_thread(prediction_progress,predict,25,args=(model,df_clusters))
+    if verbose == False:
+        result = result[['account','prediction']] 
     result = result.set_index('account').sort_values(['prediction','account'])
+    
     prediction_progress.close()
 
     if output_type == 'json':
@@ -379,9 +385,9 @@ def arg_parser():
     parser = argparse.ArgumentParser(description='BoDeGa - Bot detection in Github')
     parser.add_argument('repository', help='Name of a repository on GitHub ("owner/repo")')
     parser.add_argument('--accounts', required=False, default=list(), type=str , nargs='*', help='User login of one or more accounts. Example: --accounts mehdigolzadeh alexandredecan tommens')
-    parser.add_argument('-d','--date', type=lambda d: dateutil.parser.parse(d), required=False, default=None, help='Date regarding the recency of comments (default to None)')
-    parser.add_argument('-v','--verbose', required=False, default=False, help='To have verbose ')
-    parser.add_argument('-c','--min-comments', type=int, required=False, default=10, help='Minimum number of comments to analyze an account')
+    parser.add_argument('--start-date', type=lambda d: dateutil.parser.parse(d), required=False, default=None, help='Starting date of comments to be considered')
+    parser.add_argument('--verbose', action="store_true", required=False, default=False, help='To have verbose output result')
+    parser.add_argument('--min-comments', type=int, required=False, default=10, help='Minimum number of comments to analyze an account')
     parser.add_argument('--max-comments', type=int, required=False, default=100, help='Maximum number of comments to be used (default=100)')
     parser.add_argument('--key', metavar='APIKEY',required=True, type=str, default='', help='GitHub APIv4 key to download comments from GitHub GraphQL API')
 
@@ -396,8 +402,8 @@ def cli():
     args = arg_parser()
 
     date = datetime.now()+relativedelta(months=-6)
-    if args.date != None:
-        date = args.date
+    if args.start_date != None:
+        date = args.start_date
         
     if args.min_comments < 10 :
         sys.exit('Minimum number of required comments for the model is 10.')

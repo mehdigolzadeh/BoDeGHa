@@ -9,8 +9,11 @@ __licence__ = 'LGPL3'
 __maintainer__ = 'Mehdi Golzadeh'
 __email__ = 'golzadeh.mehdi@gmail.com'
 __url__ = 'https://github.com/MehdiGolzadeh/BotDetector'
-__description__ = 'BotDetector - A library to identify bot by analysing their comments'
-__long_description__ = ''
+__description__ = 'BoDeGA - Bot detector an automated tool to identify bots in GitHub by analysing comments patterns'
+__long_description__ = 'This tool accepts the name of a GitHub repository and a GitHub API key and computes its output in three steps.\\\
+The first step consists of downloading all comments from the specified GitHub repository thanks to GitHub GraphQL API. This step results in a list of commenters and their corresponding comments.\\\
+The second step consists of computing the number of comments, empty comments, comment patterns, and inequality between the number of comments within patterns.\\\
+The third step simply applies the model we developed on these examples and outputs the prediction made by the model.'
 __classifiers__=[
         # How mature is this project? Common values are
         #   3 - Alpha
@@ -49,7 +52,7 @@ setup(
     version=__version__,
 
     description= __description__,
-    long_description=long_description,
+    long_description=__long_description__,
 
     # The project's main homepage.
     url=__url__,
