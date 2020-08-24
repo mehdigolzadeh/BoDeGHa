@@ -3,8 +3,8 @@ from setuptools import setup
 from codecs import open # To use a consistent encoding
 
 
-__package__ = 'BoDeGA'
-__version__ = '0.0.1'
+__package__ = 'bodega'
+__version__ = '0.0.2'
 __licence__ = 'LGPL3'
 __maintainer__ = 'Mehdi Golzadeh'
 __email__ = 'golzadeh.mehdi@gmail.com'
