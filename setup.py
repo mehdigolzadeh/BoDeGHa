@@ -8,7 +8,7 @@ __version__ = '0.0.2'
 __licence__ = 'LGPL3'
 __maintainer__ = 'Mehdi Golzadeh'
 __email__ = 'golzadeh.mehdi@gmail.com'
-__url__ = 'https://github.com/mehdigolzadeh/BoDeGa'
+__url__ = 'https://github.com/mehdigolzadeh/bodega'
 __description__ = 'BoDeGA - Bot detector an automated tool to identify bots in GitHub by analysing comments patterns'
 __long_description__ = 'This tool accepts the name of a GitHub repository and a GitHub API key and computes its output in three steps.\\\
 The first step consists of downloading all comments from the specified GitHub repository thanks to GitHub GraphQL API. This step results in a list of commenters and their corresponding comments.\\\
