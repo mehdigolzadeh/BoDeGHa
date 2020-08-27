@@ -57,10 +57,9 @@ setup(
 
     install_requires = __requirement__,
 
-    package_data={
-        '': ['*.pkl']
-    },
-    include_package_data=True,
+    data_files=[
+        ('output_dir',['model.pkl']),
+    ],
 
     entry_points={
         'console_scripts': [
