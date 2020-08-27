@@ -57,7 +57,7 @@ setup(
 
     install_requires = __requirement__,
 
-    package_data={'package':['model.json']},
+    package_data={'package':['bodegamodel/model.json']},
 
     entry_points={
         'console_scripts': [
