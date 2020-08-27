@@ -37,7 +37,7 @@ except ImportError:
 import argparse
 from tqdm import tqdm
 np = pandas.np
-import os, bodega
+import pkg_resources
 
 # --- Exception ---
 class BodegaError(ValueError):
@@ -282,7 +282,8 @@ def count_empty_comments(comments):
 
 # --- Load model and prediction ---
 def get_model():
-    filename = os.path.join(bodega.__path__[0], 'model.json')
+    path = 'model.json'
+    filename = pkg_resources.resource_filename(__name__, path)
     with open(filename, 'rb') as file:
         model = pickle.load(file)
     return model
