@@ -36,6 +36,10 @@ __requirement__ = [
         'python-levenshtein >= 0.12.0',
 ]
 
+datadir = os.path.join('share','data')
+datafiles = [(d, [os.path.join(d,f) for f in files])
+    for d, folders, files in os.walk(datadir)]
+
 
 setup(
     name=__package__,
@@ -83,7 +87,7 @@ setup(
     # In this case, 'data_file' will be installed into '<sys.prefix>/my_data'
     ## data_files=[('my_data', ['data/data_file'])],
 
-    data_files = ['model.pkl'],
+    data_files =[('bodega_data', ['model.pkl'])],
 
     entry_points={
         'console_scripts': [

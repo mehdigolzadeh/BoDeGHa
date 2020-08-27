@@ -208,6 +208,7 @@ def process_comments(repository,accounts,date,min_comments,max_comments,apikey):
             
         if not issue and not pr:
             break
+
     return comments
 
 def download_comments(repository,apikey,pr=True, issue=True, beforePr=None, beforeIssue=None):
@@ -281,13 +282,8 @@ def count_empty_comments(comments):
 # --- Load model and prediction ---
 def get_model():
     filename = "model.pkl"
-    model= None
-    try:
-        with open(filename, 'rb') as file:
-            model = pickle.load(file)
-    except:
-        raise BodegaError('Could not load the model file')
-    
+    with open(filename, 'rb') as file:
+        model = pickle.load(file)
     return model
 
 def predict(model,df):
@@ -335,6 +331,9 @@ def progress(repository,accounts,date,verbose,min_comments,max_comments,apikey,o
     download_progress = tqdm(total=25,desc='Downloading comments',smoothing=.1,bar_format='{desc}: {percentage:3.0f}%|{bar}',leave=False)
     comments = run_function_in_thread(download_progress,process_comments,25,args=[repository,accounts,date,min_comments,max_comments,apikey])
     download_progress.close()
+    
+    if comments is None:
+        raise BodegaError('Download failed please check your apikey or required libraries.')
 
     if len(comments)<1:
         raise BodegaError('Available comments are not enough to predict the type of accounts')
@@ -369,7 +368,9 @@ def progress(repository,accounts,date,verbose,min_comments,max_comments,apikey,o
     tasks =['Loading model','Making prediction','Exporting result']
     prediction_progress.set_description(tasks[0])
     model = run_function_in_thread(prediction_progress,get_model,5)
-
+    if model is None:
+        raise BodegaError('Could not load the model file')
+    
     prediction_progress.set_description(tasks[1])
     result = run_function_in_thread(prediction_progress,predict,25,args=(model,df_clusters))
     if verbose == False:
