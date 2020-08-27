@@ -281,7 +281,7 @@ def count_empty_comments(comments):
 
 # --- Load model and prediction ---
 def get_model():
-    filename = "model.pkl"
+    filename = "model.json"
     with open(filename, 'rb') as file:
         model = pickle.load(file)
     return model
@@ -370,7 +370,7 @@ def progress(repository,accounts,date,verbose,min_comments,max_comments,apikey,o
     model = run_function_in_thread(prediction_progress,get_model,5)
     if model is None:
         raise BodegaError('Could not load the model file')
-    
+
     prediction_progress.set_description(tasks[1])
     result = run_function_in_thread(prediction_progress,predict,25,args=(model,df_clusters))
     if verbose == False:
@@ -432,7 +432,7 @@ def cli():
         output_type = 'json'
     else:
         output_type = 'text'
-    
+
     try:
         print(progress(args.repository,args.accounts,date,args.verbose,min_comments,max_comments,apikey,output_type))
     except BodegaError as e:
