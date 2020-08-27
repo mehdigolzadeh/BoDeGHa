@@ -57,7 +57,8 @@ setup(
 
     install_requires = __requirement__,
 
-    include_package_data=True,
+    include_package_data = True,
+    packages = ['.'],
 
     entry_points={
         'console_scripts': [
