@@ -57,9 +57,7 @@ setup(
 
     install_requires = __requirement__,
 
-    data_files=[
-        ('',['model.json']),
-    ],
+    package_data={'package':'model.json'},
 
     entry_points={
         'console_scripts': [
