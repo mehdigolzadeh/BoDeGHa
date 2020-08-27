@@ -356,7 +356,7 @@ def run_function_in_thread(pbar, function, max_value, args=[], kwargs={}):
     thread.start()
     while thread.is_alive():
         thread.join(timeout=.1)
-        if(pbar.n < max_value - .2):
+        if(pbar.n < max_value - .3):
             pbar.update(.1)
     pbar.n = max_value
     return ret[0]
