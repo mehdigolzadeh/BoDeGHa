@@ -1,1 +1,1 @@
-recursive-include package/ *.json
+include *.json
