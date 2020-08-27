@@ -505,17 +505,18 @@ def cli():
         output_type = 'text'
 
     try:
-        print(
-            progress(
-                args.repository,
-                args.accounts,
-                date,
-                args.verbose,
-                min_comments,
-                max_comments,
-                apikey,
-                output_type
-            ))
+        with pandas.option_context('display.max_rows', None, 'display.max_columns', None): 
+            print(
+                progress(
+                    args.repository,
+                    args.accounts,
+                    date,
+                    args.verbose,
+                    min_comments,
+                    max_comments,
+                    apikey,
+                    output_type
+                ))
     except BodegaError as e:
         sys.exit(e)
 
