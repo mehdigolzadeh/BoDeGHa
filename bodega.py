@@ -281,8 +281,13 @@ def count_empty_comments(comments):
 # --- Load model and prediction ---
 def get_model():
     filename = "model.pkl"
-    with open(filename, 'rb') as file:
+    model= None
+    try:
+        with open(filename, 'rb') as file:
         model = pickle.load(file)
+    except BodegaError as e:
+        sys.exit(e)
+    
     return model
 
 def predict(model,df):
@@ -384,7 +389,7 @@ def progress(repository,accounts,date,verbose,min_comments,max_comments,apikey,o
 def arg_parser():
     parser = argparse.ArgumentParser(description='BoDeGa - Bot detection in Github')
     parser.add_argument('repository', help='Name of a repository on GitHub ("owner/repo")')
-    parser.add_argument('--accounts', required=False, default=list(), type=str , nargs='*', help='User login of one or more accounts. Example: --accounts mehdigolzadeh alexandredecan tommens')
+    parser.add_argument('--accounts',metavar='ACCOUNT', required=False, default=list(), type=str , nargs='*', help='User login of one or more accounts. Example: --accounts mehdigolzadeh alexandredecan tommens')
     parser.add_argument('--start-date', type=lambda d: dateutil.parser.parse(d), required=False, default=None, help='Starting date of comments to be considered')
     parser.add_argument('--verbose', action="store_true", required=False, default=False, help='To have verbose output result')
     parser.add_argument('--min-comments', type=int, required=False, default=10, help='Minimum number of comments to analyze an account')

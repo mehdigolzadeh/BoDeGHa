@@ -15,22 +15,16 @@ The first step consists of downloading all comments from the specified GitHub re
 The second step consists of computing the number of comments, empty comments, comment patterns, and inequality between the number of comments within patterns.\\\
 The third step simply applies the model we developed on these examples and outputs the prediction made by the model.'
 __classifiers__=[
-        # How mature is this project? Common values are
-        #   3 - Alpha
-        #   4 - Beta
-        #   5 - Production/Stable
-        'Development Status :: 3 - Alpha',
-
-        # Indicate who your project is intended for
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
-        # 'Topic :: Software Development :: Build Tools',
-
-        # Pick your license as you wish (should match "license" above)
-        'License :: OSI Approved :: Python Software Foundation License',
-
-        # Specify the Python versions you support here. In particular, ensure
-        # that you indicate whether you support Python 2, Python 3 or both.
+        'Intended Audience :: Education',
+        'Intended Audience :: Information Technology',
+        'Intended Audience :: Science/Research',
+        'Topic :: Scientific/Engineering :: Information Analysis',
+        'License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
     ]
 __requirement__ = [
         'python-dateutil >= 2.7.5',
@@ -89,15 +83,7 @@ setup(
     # In this case, 'data_file' will be installed into '<sys.prefix>/my_data'
     ## data_files=[('my_data', ['data/data_file'])],
 
-    # To provide executable scripts, use entry points in preference to the
-    # "scripts" keyword. Entry points provide cross-platform support and allow
-    # pip to create the appropriate form of executable for the target platform.
-    #
-    # entry_points={
-    #     'console_scripts': [
-    #         'command=module:main',
-    #     ],
-    # },
+    data_files = ['model.pkl'],
 
     entry_points={
         'console_scripts': [
