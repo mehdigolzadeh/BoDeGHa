@@ -284,9 +284,9 @@ def get_model():
     model= None
     try:
         with open(filename, 'rb') as file:
-        model = pickle.load(file)
-    except BodegaError as e:
-        sys.exit(e)
+            model = pickle.load(file)
+    except:
+        raise BodegaError('Could not load the model file')
     
     return model
 
