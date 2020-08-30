@@ -29,15 +29,16 @@ import json
 import sys
 import dateutil
 import pkg_resources
+import numpy as np
 from dateutil.relativedelta import relativedelta
 from datetime import datetime
-try:
+try: 
     from urllib.request import urlopen, Request
 except ImportError:
     from urllib2 import urlopen, Request
 import argparse
 from tqdm import tqdm
-np = pandas.np
+
 
 
 # --- Exception ---
@@ -143,7 +144,7 @@ def get_comment_search_query(repository, pr, issue, beforePr, beforeIssue):
 
 def extract_data(data, date_limit, issue_type='issues'):
     df = pandas.DataFrame()
-    json_object = json.loads(data)
+    json_object = json.loads(data.decode('utf-8'))
     if 'data' not in json_object:
         return
     data = json_object["data"]["repository"]
@@ -281,23 +282,18 @@ def average_jac_lev(x, y):
     """
     return (jaccard(x, y) + levenshtein(x, y)) / 2
 
-
-def gini(x):
-    """
-    Computes Gini inequality metric for a given array
-    """
-    mad = np.abs(np.subtract.outer(x, x)).mean()
-    rmad = mad/np.mean(x)
-    g = 0.5 * rmad
-    return round(g, 3)
-
-
-def compute_clusters(itemsarr):
-    clustering = DBSCAN(0.5, min_samples=1, metric='precomputed')
-    items = compute_distance(itemsarr, average_jac_lev)
-    clusters = clustering.fit_predict(items)
-    gini_ = gini(np.tril(items)),
-    return (len(set(clusters))), gini_
+def gini(array):
+    """Calculate the Gini coefficient of a numpy array."""
+    if len(array) == 0:
+        return 0
+    array = array.flatten()
+    if np.amin(array) < 0:
+        array -= np.amin(array) 
+    array += 0.0000001
+    array = np.sort(array)
+    index = np.arange(1, array.shape[0] + 1)
+    n = array.shape[0]
+    return ((np.sum((2 * index - n  - 1) * array)) / (n * np.sum(array)))
 
 
 def count_empty_comments(comments):
@@ -385,12 +381,13 @@ def progress(repository, accounts, date, verbose, min_comments, max_comments, ap
             .count()[lambda x: x['body'] >= min_comments]['author'].values
         )]
         .sort_values('created_at', ascending=False)
+        .groupby('author').head(100)
     )
     if accounts != []:
         df = df[lambda x: x['author'].isin(accounts)]
 
     if(len(df) < 1):
-        raise BodegaError('Available comments are not enough to predict the type of accounts')
+        raise BodegaError('There are not enough comments in the selected or default time period to predict the type of accounts')
 
     inputs = []
     for author, group in df.groupby('author'):
@@ -505,7 +502,7 @@ def cli():
         output_type = 'text'
 
     try:
-        with pandas.option_context('display.max_rows', None, 'display.max_columns', None): 
+        with pandas.option_context('display.max_rows', None, 'display.max_columns', None):
             print(
                 progress(
                     args.repository,
