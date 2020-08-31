@@ -338,7 +338,7 @@ def task(data):
         len(group),
         empty_comments,
         len(np.unique(clusters)),
-        gini(items[pandas.np.tril(items).astype(bool)]),
+        gini(items[np.tril(items).astype(bool)]),
     )
 
 
@@ -448,7 +448,7 @@ def arg_parser():
         help='User login of one or more accounts. Example: \
         --accounts mehdigolzadeh alexandredecan tommens')
     parser.add_argument(
-        '--start-date', type=lambda d: dateutil.parser.parse(d), required=False,
+        '--start-date', type=str, required=False,
         default=None, help='Starting date of comments to be considered')
     parser.add_argument(
         '--verbose', action="store_true", required=False, default=False,
@@ -476,7 +476,7 @@ def cli():
 
     date = datetime.now()+relativedelta(months=-6)
     if args.start_date is not None:
-        date = args.start_date
+        date = dateutil.parser.parse(args.start_date)
 
     if args.min_comments < 10:
         sys.exit('Minimum number of required comments for the model is 10.')
@@ -501,21 +501,21 @@ def cli():
     else:
         output_type = 'text'
 
-    try:
-        with pandas.option_context('display.max_rows', None, 'display.max_columns', None):
-            print(
-                progress(
-                    args.repository,
-                    args.accounts,
-                    date,
-                    args.verbose,
-                    min_comments,
-                    max_comments,
-                    apikey,
-                    output_type
-                ))
-    except BodegaError as e:
-        sys.exit(e)
+    # try:
+    #     with pandas.option_context('display.max_rows', None, 'display.max_columns', None):
+    #         print(
+    #             progress(
+    #                 args.repository,
+    #                 args.accounts,
+    #                 date,
+    #                 args.verbose,
+    #                 min_comments,
+    #                 max_comments,
+    #                 apikey,
+    #                 output_type
+    #             ))
+    # except BodegaError as e:
+    #     sys.exit(e)
 
 
 if __name__ == '__main__':
