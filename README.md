@@ -7,7 +7,7 @@ The second step consists of computing the number of comments, empty comments, co
 The third step simply applies the model we developed on these examples and outputs the prediction made by the model.
 
 
-## Usage
+## Installation
 To install this tool, you can run the following command:
 ```
 pip install git+https://github.com/mehdigolzadeh/BoDeGa
@@ -29,7 +29,7 @@ Source <name>/bin/activate
 ```
 After running this command your command line prompt will change to `(<name>) ...` and now you can install BoDeGa with the pip command.
 
-## Run 
+## Usage 
 To run the BoDeGa you need to provide GitHub personal access token (API key). You can follow the instruction [here](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token) to obtain a personal access token (You don't need any of permissions in the list).
 
 You can run BoDeGa simply by running `bodega repo_owner\repo_name --apikey <token>`
@@ -72,5 +72,22 @@ _This parameter is mandatory and you can obtain an access token as as described 
 _This group of parameters is the type of output, if you pass JSON you will get the result in JSON format_
 
 ## Example of BoDeGa run
-
+```
+$ bodega request/request --key <my token> --start-date 01-01-2017  --verbose
+                   comments  empty comments  patterns  dispersion prediction                          
+account                                                                     
+greenkeeperio-bot        12               0         1    0.108246        Bot
+stale                   100               0         1    0.000000        Bot
+FredKSchott              64               0        53    0.040618      Human
+ahmadnassri              11               0        11    0.037776      Human
+csvan                    12               0        12    0.031019      Human
+dvishniakov              11               0         9    0.068446      Human
+hktalent                 11               0        10    0.034367      Human
+johnnysprinkles          12               0        11    0.033187      Human
+mikeal                  100               0       100    0.035073      Human
+nicjansma                12               0        12    0.035834      Human
+plroebuck                10               0        10    0.035052      Human
+reconbot                 93               0        81    0.036863      Human
+simov                    41               0        37    0.031932      Human
+```
 
