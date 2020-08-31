@@ -27,12 +27,21 @@ Start using it by:
 ```
 Source <name>/bin/activate
 ```
-After running las command your command line prompt will change to `(<name>) ...` and now you can install BoDeGa with the pip command.
+After running this command your command line prompt will change to `(<name>) ...` and now you can install BoDeGa with the pip command.
 
+## Run 
+To run the BoDeGa you need to provide GitHub personal access token (API key). You can follow the instruction [here]{https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token} to obtain a personal access token (You don't need any of permissions in the list).
 
+You can run BoDeGa simply by running `bodega repo_owner\repo_name --apikey <token>`
 
-### Run 
-usage: bodega [-h] repository [--accounts [ACCOUNTS [ACCOUNTS ...]]]
-              [--start-date START_DATE] [--min-comments MIN_COMMENTS] 
-	      [--verbose] [--max-comments MAX_COMMENTS]
-              --key APIKEY [--text | --csv | --json]
+If you dont pass other parameters, default parameters will be used. Here is the list of parameters:
+
+`--accounts [ACCOUNT [ACCOUNT ...]]` User login of one or more accounts. Example: --accounts mehdigolzadeh alexandredecan tommens
+`--start-date START_DATE` 	Starting date of comments to be considered
+`--verbose` 			To have verbose output result
+`--min-comments MIN_COMMENTS` 	Minimum number of comments to analyze an account
+`--max-comments MAX_COMMENTS` 	Maximum number of comments to be used (default=100)
+`--key APIKEY` 			GitHub APIv4 key to download comments from GitHub GraphQL API
+`--text`                	Print results as text.
+`--csv`                		Print results as csv.
+`--json`                	Print results as json.
