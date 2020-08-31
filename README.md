@@ -36,7 +36,8 @@ You can run BoDeGa simply by running `bodega repo_owner\repo_name --apikey <toke
 
 If you dont pass other parameters, default parameters will be used. Here is the list of parameters:
 
-`--accounts [ACCOUNT [ACCOUNT ...]]` 	**User login of one or more accounts. Example: --accounts mehdigolzadeh alexandredecan tommens**
+`--accounts [ACCOUNT [ACCOUNT ...]]` 	**User login of one or more accounts.**
+>     Example: --accounts mehdigolzadeh alexandredecan tommens
 
 `--start-date START_DATE` 		**Starting date of comments to be considered**
 `--verbose` 				**To have verbose output result**
