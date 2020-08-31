@@ -12,8 +12,8 @@ To install this tool, you can run the following command:
 ```
 pip install git+https://github.com/mehdigolzadeh/BoDeGa
 ```
-While you can easily install and use this tool by executing the above command, but given that this tool has many dependencies and in order not to conflict with existing packages, it is better to use the following commands before installation. Install and create a Python virtual environment and then use the tool in the virtual environment. 
-Here we explain steps to install and create a virtual environment with virtualenv you can use other virtual environment tools as well.
+While you can easily install and use this tool by executing the above command, but given that this tool has many dependencies and in order not to conflict with existing packages, it is better to use the following commands before installation. Install and create a _Python virtual environment_ and then use the tool in the virtual environment. 
+Here we explain steps to install and create a virtual environment with **virtualenv**. You can use other virtual environment tools as well.
 
 Use the followin command to install:
 ```
@@ -29,8 +29,9 @@ Source <name>/bin/activate
 ```
 After running this command your command line prompt will change to `(<name>) ...` and now you can install BoDeGa with the pip command.
 
+
 ## Usage 
-To run the BoDeGa you need to provide GitHub personal access token (API key). You can follow the instruction [here](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token) to obtain a personal access token (You don't need any of permissions in the list).
+To run the *BoDeGa* you need to provide *GitHub personal access token* (API key). You can follow the instruction [here](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token) to obtain a personal access token (**You don't need any of permissions in the list**).
 
 You can run BoDeGa simply by running `bodega repo_owner\repo_name --apikey <token>`
 
@@ -70,6 +71,7 @@ _This parameter is mandatory and you can obtain an access token as as described 
 > Example: $ bodega repo_owner/repo_name --json --key <token> 
 
 _This group of parameters is the type of output, if you pass JSON you will get the result in JSON format_
+
 
 ## Example of BoDeGa run
 ```
