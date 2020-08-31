@@ -30,7 +30,7 @@ Source <name>/bin/activate
 After running this command your command line prompt will change to `(<name>) ...` and now you can install BoDeGa with the pip command.
 
 ## Run 
-To run the BoDeGa you need to provide GitHub personal access token (API key). You can follow the instruction {here}[https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token] to obtain a personal access token (You don't need any of permissions in the list).
+To run the BoDeGa you need to provide GitHub personal access token (API key). You can follow the instruction [here](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token) to obtain a personal access token (You don't need any of permissions in the list).
 
 You can run BoDeGa simply by running `bodega repo_owner\repo_name --apikey <token>`
 
@@ -69,4 +69,8 @@ _This parameter is mandatory and you can obtain an access token as as described 
 `--json`                	Print results as json.
 > Example: $ bodega repo_owner/repo_name --json --apikey <token> 
 
-_This group of parameters is the type of output, if you pass JSON you will get the result in JSON format'
+_This group of parameters is the type of output, if you pass JSON you will get the result in JSON format_
+
+## Example of BoDeGa run
+
+
