@@ -1,48 +1,54 @@
 # BoDeGa
-Bot detector an automated tool to identify bots in GitHub by analysing comments patterns
+An automated tool to identify bots in GitHub repositories by analysing pull request and issue comments.
+The tool has been developed by Mehdi Golzadeh, researcher at the Software Engineering Lab of the University of Mons (Belgium) as part of his PhD research.
 
-This tool accepts the name of a GitHub repository and a GitHub API key and computes its output in three steps.
-The first step consists of downloading all comments from the specified GitHub repository thanks to GitHub GraphQL API. This step results in a list of commenters and their corresponding comments.
-The second step consists of computing the number of comments, empty comments, comment patterns, and inequality between the number of comments within patterns.
-The third step simply applies the model we developed on these examples and outputs the prediction made by the model.
+This tool accepts the name of a GitHub repository and requires a GitHub API key to compute its output in three steps.
+The first step consists of downloading all pull request and issue comments from the specified repository thanks to GitHub GraphQL API. This step results in a list of commenters and their corresponding pull request and issue comments.
+The second step consists of computing the following features that are needed for the classification model: the number of comments, empty comments, comment patterns, and inequality between the number of comments within patterns.
+The third step applies the classification model on the repository data and outputs the bot prediction made by the classification model.
+
+More details about the classification model can be found in a companion research article that is currently under peer review.
 
 
 ## Installation
-To install this tool, you can run the following command:
+To install BoDeGa, run the following command:
 ```
 pip install git+https://github.com/mehdigolzadeh/BoDeGa
 ```
-While you can easily install and use this tool by executing the above command, but given that this tool has many dependencies and in order not to conflict with existing packages, it is better to use the following commands before installation. Install and create a _Python virtual environment_ and then use the tool in the virtual environment. 
-Here we explain steps to install and create a virtual environment with **virtualenv**. You can use other virtual environment tools as well.
+Given that this tool has many dependencies, and in order not to conflict with already installed packages, it is recommended to use a virtual environment before its installation. You can install and create a _Python virtual environment_ and then install and run the tool in this environment. You can use any virtual environment of your choice. Below are the steps to install and create a virtual environment with **virtualenv**.
 
-Use the followin command to install:
+Use the following command to install the virtual environment:
 ```
 pip install virtualenv
 ```
-Then create one after moving to the folder you want to place the files:
+Create a virtual environment in the folder where you want to place your files:
 ```
 virtualenv <name>
 ```
-Start using it by:
+Start using the environmnet by:
 ```
-Source <name>/bin/activate
+source <name>/bin/activate
 ```
 After running this command your command line prompt will change to `(<name>) ...` and now you can install BoDeGa with the pip command.
+When you are finished running the tool, you can quit the environment by:
+```
+deactivate
+```
 
 
 ## Usage 
-To run the *BoDeGa* you need to provide *GitHub personal access token* (API key). You can follow the instruction [here](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token) to obtain a personal access token (**You don't need any of permissions in the list**).
+To run *BoDeGa* you need to provide a *GitHub personal access token* (API key). You can follow the instruction [here](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token) to obtain such a token (**You don't need any of permissions in the list**).
 
-You can run BoDeGa simply by running `bodega repo_owner\repo_name --apikey <token>`
+You can execute the tool with all default parameters by running `bodega repo_owner\repo_name --apikey <token>`
 
-If you dont pass other parameters, default parameters will be used. Here is the list of parameters:
+Here is the list of parameters:
 
 `--accounts [ACCOUNT [ACCOUNT ...]]` 	**User login of one or more accounts**
 > Example: $ bodega repo_owner/repo_name --accounts mehdigolzadeh alexandredecan tommens --key <token>
   
-_By default all accounts will be analysed_
+_By default all accounts in the repository will be analysed_
 
-`--start-date START_DATE` 		**Starting date of comments to be considered**
+`--start-date START_DATE` 		**Start date of pull request and issue comments in the repository to be considered**
 > Example: $ bodega repo_owner/repo_name --start-date 01-01-2018 --key <token>
   
 _The default start-date is 6 months before the current date. 
@@ -52,28 +58,28 @@ _The default start-date is 6 months before the current date.
  
 _The default value is false, if you don't pass this parameter the output will only be the accounts and their type_
   
-`--min-comments MIN_COMMENTS` 		**Minimum number of comments to analyze an account**
+`--min-comments MIN_COMMENTS` 		**Minimum number of pull request and issue comments that are required to analyze an account**
 > Example: $ bodega repo_owner/repo_name --min-comment 20 --key <token>
  
 _The default value is 10 comments_
 
-`--max-comments MAX_COMMENTS` 		**Maximum number of comments to be used (default=100)**
+`--max-comments MAX_COMMENTS` 		**Maximum number of pull request and issue comments to be considered for each account (default=100)**
 > Example: $ bodega repo_owner/repo_name --max-comment 120 --key <token>
 
 _The default value is 100 comments_
 
-`--key APIKEY` 				**GitHub personal access token to download comments from GitHub GraphQL API**
-_This parameter is mandatory and you can obtain an access token as as described earlier_
+`--key APIKEY` 				**GitHub personal access token required to download comments from GitHub GraphQL API**
+_This parameter is mandatory and you can obtain an access token as described earlier_
 
-`--text`                	Print results as text.
-`--csv`                		Print results as csv.
-`--json`                	Print results as json.
+`--text`                	Output results as plain text
+`--csv`                		Output results in comma-separated values (csv) format
+`--json`                	Output results in json format
 > Example: $ bodega repo_owner/repo_name --json --key <token> 
 
-_This group of parameters is the type of output, if you pass JSON you will get the result in JSON format_
+_This group of parameters is the type of output, e.g., if you pass --json you will get the result in JSON format_
 
 
-## Example of BoDeGa run
+## Examples of BoDeGa output (for illustration purposes only)
 ```
 $ bodega request/request --key <my token> --start-date 01-01-2017  --verbose
                    comments  empty comments  patterns  dispersion prediction                          
