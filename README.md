@@ -37,27 +37,27 @@ You can run BoDeGa simply by running `bodega repo_owner\repo_name --apikey <toke
 If you dont pass other parameters, default parameters will be used. Here is the list of parameters:
 
 `--accounts [ACCOUNT [ACCOUNT ...]]` 	**User login of one or more accounts**
-> Example: $ bodega repo_owner/repo_name --accounts mehdigolzadeh alexandredecan tommens --apikey <token>
+> Example: $ bodega repo_owner/repo_name --accounts mehdigolzadeh alexandredecan tommens --key <token>
   
 _By default all accounts will be analysed_
 
 `--start-date START_DATE` 		**Starting date of comments to be considered**
-> Example: $ bodega repo_owner/repo_name --start-date 01-01-2018 --apikey <token>
+> Example: $ bodega repo_owner/repo_name --start-date 01-01-2018 --key <token>
   
 _The default start-date is 6 months before the current date. 
 
 `--verbose` **To have verbose output result**
-> Example: $ bodega repo_owner/repo_name --verbose --apikey <token>
+> Example: $ bodega repo_owner/repo_name --verbose --key <token>
  
 _The default value is false, if you don't pass this parameter the output will only be the accounts and their type_
   
 `--min-comments MIN_COMMENTS` 		**Minimum number of comments to analyze an account**
-> Example: $ bodega repo_owner/repo_name --min-comment 20 --apikey <token>
+> Example: $ bodega repo_owner/repo_name --min-comment 20 --key <token>
  
 _The default value is 10 comments_
 
 `--max-comments MAX_COMMENTS` 		**Maximum number of comments to be used (default=100)**
-> Example: $ bodega repo_owner/repo_name --max-comment 120 --apikey <token>
+> Example: $ bodega repo_owner/repo_name --max-comment 120 --key <token>
 
 _The default value is 100 comments_
 
@@ -67,7 +67,7 @@ _This parameter is mandatory and you can obtain an access token as as described 
 `--text`                	Print results as text.
 `--csv`                		Print results as csv.
 `--json`                	Print results as json.
-> Example: $ bodega repo_owner/repo_name --json --apikey <token> 
+> Example: $ bodega repo_owner/repo_name --json --key <token> 
 
 _This group of parameters is the type of output, if you pass JSON you will get the result in JSON format_
 
@@ -91,3 +91,20 @@ reconbot                 93               0        81    0.036863      Human
 simov                    41               0        37    0.031932      Human
 ```
 
+```
+$ bodega fthomas/refined --key <my token> --start-date 01-01-2017  --verbose --min-comments 20 --max-comments 90 --json
+
+[{"comments":90,"empty comments":0,"patterns":2,"dispersion":0.2573516536,"prediction":"Bot"},{"comments":51,"empty comments":0,"patterns":2,"dispersion":0.2291022525,"prediction":"Bot"},{"comments":90,"empty comments":0,"patterns":1,"dispersion":0.1800412851,"prediction":"Bot"},{"comments":36,"empty comments":0,"patterns":36,"dispersion":0.0282932021,"prediction":"Human"},{"comments":20,"empty comments":1,"patterns":20,"dispersion":0.0314103784,"prediction":"Human"},{"comments":90,"empty comments":14,"patterns":63,"dispersion":0.0441294969,"prediction":"Human"},{"comments":43,"empty comments":1,"patterns":43,"dispersion":0.0321397659,"prediction":"Human"}]
+```
+
+```
+$ bodega servo/servo --key <my token> --verbose --max-comments 80 --csv --accounts bors-servo Darkspirit Eijebong PeterZhizhin SimonSapin highfive
+
+account,comments,empty comments,patterns,dispersion,prediction                                        
+bors-servo,80,0,11,0.12661359778212722,Bot
+highfive,80,0,6,0.16390462912896814,Bot
+Darkspirit,32,0,32,0.025969293313879968,Human
+Eijebong,27,2,23,0.02551053114396642,Human
+PeterZhizhin,13,0,12,0.025372037602093358,Human
+SimonSapin,80,3,57,0.04771309733409579,Human
+```
