@@ -36,12 +36,13 @@ You can run BoDeGa simply by running `bodega repo_owner\repo_name --apikey <toke
 
 If you dont pass other parameters, default parameters will be used. Here is the list of parameters:
 
-> `--accounts [ACCOUNT [ACCOUNT ...]]` 	**User login of one or more accounts. Example: --accounts mehdigolzadeh alexandredecan tommens**
-> `--start-date START_DATE` 		**Starting date of comments to be considered**
-> `--verbose` 				**To have verbose output result**
-> `--min-comments MIN_COMMENTS` 		**Minimum number of comments to analyze an account**
-> `--max-comments MAX_COMMENTS` 		**Maximum number of comments to be used (default=100)**
-> `--key APIKEY` 				**GitHub APIv4 key to download comments from GitHub GraphQL API**
+`--accounts [ACCOUNT [ACCOUNT ...]]` 	**User login of one or more accounts. Example: --accounts mehdigolzadeh alexandredecan tommens**
+
+`--start-date START_DATE` 		**Starting date of comments to be considered**
+`--verbose` 				**To have verbose output result**
+`--min-comments MIN_COMMENTS` 		**Minimum number of comments to analyze an account**
+`--max-comments MAX_COMMENTS` 		**Maximum number of comments to be used (default=100)**
+`--key APIKEY` 				**GitHub APIv4 key to download comments from GitHub GraphQL API**
 `--text`                	Print results as text.
 `--csv`                		Print results as csv.
 `--json`                	Print results as json.
