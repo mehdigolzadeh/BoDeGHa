@@ -9,6 +9,8 @@ The third step applies the classification model on the repository data and outpu
 
 More details about the classification model can be found in a companion research article that is currently under peer review.
 
+**Important note!** When running the tool on a GitHub repository of your choice, it is possible, though unfrequent, for some human accounts or bot accounts to be misclassified by the classification model. If you would encounter such situations while running the tool, please inform us about it, so that we can strive to further improve the accurracy of the classification algorithm.
+
 
 ## Installation
 To install BoDeGa, run the following command:
