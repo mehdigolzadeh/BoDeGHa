@@ -358,7 +358,7 @@ def run_function_in_thread(pbar, function, max_value, args=[], kwargs={}):
     return ret[0]
 
 
-def progress(repository, accounts, date, verbose, min_comments, max_comments, apikey, output_type):
+def progress(repository, accounts, exclude, date, verbose, min_comments, max_comments, apikey, output_type):
     download_progress = tqdm(
         total=25, desc='Downloading comments', smoothing=.1,
         bar_format='{desc}: {percentage:3.0f}%|{bar}', leave=False)
@@ -383,6 +383,9 @@ def progress(repository, accounts, date, verbose, min_comments, max_comments, ap
         .sort_values('created_at', ascending=False)
         .groupby('author').head(100)
     )
+    if exclude != []:
+        df = df[~df["author"].isin(exclude)]
+        
     if accounts != []:
         df = df[lambda x: x['author'].isin(accounts)]
 
@@ -449,6 +452,10 @@ def arg_parser():
         help='User login of one or more accounts. Example: \
 --accounts mehdigolzadeh alexandredecan tommens')
     parser.add_argument(
+        '--exclude', metavar='ACCOUNT', required=False, default=list(), type=str, nargs='*',
+        help='List of accounts to be excluded in the analysis. Example: \
+--exclude mehdigolzadeh alexandredecan tommens')
+    parser.add_argument(
         '--start-date', type=str, required=False,
         default=None, help='Starting date of comments to be considered')
     parser.add_argument(
@@ -508,6 +515,7 @@ Please read more about it in the repository readme file.')
                 progress(
                     args.repository,
                     args.accounts,
+                    args.exclude,
                     date,
                     args.verbose,
                     min_comments,
