@@ -32,13 +32,12 @@ import pkg_resources
 import numpy as np
 from dateutil.relativedelta import relativedelta
 from datetime import datetime
-try: 
+try:
     from urllib.request import urlopen, Request
 except ImportError:
     from urllib2 import urlopen, Request
 import argparse
 from tqdm import tqdm
-
 
 
 # --- Exception ---
@@ -282,18 +281,19 @@ def average_jac_lev(x, y):
     """
     return (jaccard(x, y) + levenshtein(x, y)) / 2
 
+
 def gini(array):
     """Calculate the Gini coefficient of a numpy array."""
     if len(array) == 0:
         return 0
     array = array.flatten()
     if np.amin(array) < 0:
-        array -= np.amin(array) 
+        array -= np.amin(array)
     array += 0.0000001
     array = np.sort(array)
     index = np.arange(1, array.shape[0] + 1)
     n = array.shape[0]
-    return ((np.sum((2 * index - n  - 1) * array)) / (n * np.sum(array)))
+    return ((np.sum((2 * index - n - 1) * array)) / (n * np.sum(array)))
 
 
 def count_empty_comments(comments):
@@ -387,7 +387,8 @@ def progress(repository, accounts, date, verbose, min_comments, max_comments, ap
         df = df[lambda x: x['author'].isin(accounts)]
 
     if(len(df) < 1):
-        raise BodegaError('There are not enough comments in the selected or default time period to predict the type of accounts')
+        raise BodegaError('There are not enough comments in the selected time period to\
+predict the type of accounts. At least 10 comments is required for each account.')
 
     inputs = []
     for author, group in df.groupby('author'):
@@ -446,7 +447,7 @@ def arg_parser():
     parser.add_argument(
         '--accounts', metavar='ACCOUNT', required=False, default=list(), type=str, nargs='*',
         help='User login of one or more accounts. Example: \
-        --accounts mehdigolzadeh alexandredecan tommens')
+--accounts mehdigolzadeh alexandredecan tommens')
     parser.add_argument(
         '--start-date', type=str, required=False,
         default=None, help='Starting date of comments to be considered')
@@ -489,8 +490,8 @@ def cli():
         max_comments = args.max_comments
 
     if args.key == '' or len(args.key) < 35:
-        sys.exit('A GitHub API key is required to start the process. \
-            Please read the documentation to know more about GitHub APIv4 key')
+        sys.exit('A GitHub personal access token is required to start the process. \
+Please read more about it in the repository readme file.')
     else:
         apikey = args.key
 
