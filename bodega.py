@@ -436,7 +436,7 @@ predict the type of accounts. At least 10 comments is required for each account.
     prediction_progress.close()
 
     if output_type == 'json':
-        return (result.to_json(orient='records'))
+        return (result.reset_index().to_json(orient='records'))
     elif output_type == 'csv':
         return (result.to_csv())
     else:

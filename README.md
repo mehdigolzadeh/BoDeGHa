@@ -108,7 +108,7 @@ simov                    41               0        37    0.031932      Human
 ```
 $ bodega fthomas/refined --key <my token> --start-date 01-01-2017  --verbose --min-comments 20 --max-comments 90 --json
 
-[{"comments":90,"empty comments":0,"patterns":2,"dispersion":0.2573516536,"prediction":"Bot"},{"comments":51,"empty comments":0,"patterns":2,"dispersion":0.2291022525,"prediction":"Bot"},{"comments":90,"empty comments":0,"patterns":1,"dispersion":0.1800412851,"prediction":"Bot"},{"comments":36,"empty comments":0,"patterns":36,"dispersion":0.0282932021,"prediction":"Human"},{"comments":20,"empty comments":1,"patterns":20,"dispersion":0.0314103784,"prediction":"Human"},{"comments":90,"empty comments":14,"patterns":63,"dispersion":0.0441294969,"prediction":"Human"},{"comments":43,"empty comments":1,"patterns":43,"dispersion":0.0321397659,"prediction":"Human"}]
+[{"account":"codecov","comments":90,"empty comments":0,"patterns":2,"dispersion":0.2501228703,"prediction":"Bot"},{"account":"codecov-io","comments":51,"empty comments":0,"patterns":2,"dispersion":0.2291022525,"prediction":"Bot"},{"account":"scala-steward","comments":90,"empty comments":0,"patterns":1,"dispersion":0.1819953352,"prediction":"Bot"},{"account":"NeQuissimus","comments":36,"empty comments":0,"patterns":36,"dispersion":0.0282932021,"prediction":"Human"},{"account":"erikerlandson","comments":20,"empty comments":1,"patterns":20,"dispersion":0.0314103784,"prediction":"Human"},{"account":"fthomas","comments":90,"empty comments":14,"patterns":63,"dispersion":0.0441094382,"prediction":"Human"},{"account":"howyp","comments":43,"empty comments":1,"patterns":43,"dispersion":0.0321397659,"prediction":"Human"}]
 ```
 
 ```
