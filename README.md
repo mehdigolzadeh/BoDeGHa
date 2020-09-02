@@ -80,6 +80,10 @@ _This parameter is mandatory and you can obtain an access token as described ear
 
 _This group of parameters is the type of output, e.g., if you pass --json you will get the result in JSON format_
 
+## As of version 0.2.3
+`--exclude [ACCOUNT [ACCOUNT ...]]` **List of accounts to be excluded from the analysis**
+
+> Example: $ bodega repo_owner/repo_name --exclude mehdigolzadeh alexandredecan tommens --key <token>
 
 ## Examples of BoDeGa output (for illustration purposes only)
 ```
