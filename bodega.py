@@ -182,42 +182,39 @@ def extract_data(data, date_limit, issue_type='issues'):
     return df, issue_total, issue_count, start_cursor, last_date
 
 
-def process_comments(repository, accounts, date, min_comments, max_comments, apikey):
+def process_comments(repositories, accounts, date, min_comments, max_comments, apikey):
     comments = pandas.DataFrame()
     pr = True
     issue = True
     beforePr = None
     beforeIssue = None
-    while True:
-        data = download_comments(repository, apikey, pr, issue, beforePr, beforeIssue)
+    for repository in repositories:
+        while True:
+            data = download_comments(repository, apikey, pr, issue, beforePr, beforeIssue)
 
-        if pr:
-            df_pr, pr_total, pr_count, pr_end_cursor, last_pr \
-                = extract_data(data, date, 'pullRequests')
-            comments = comments.append(df_pr, ignore_index=True)
-        if issue:
-            df_issues, issue_total, issue_count, issue_end_cursor, last_issue = \
-                extract_data(data, date, 'issues')
-            comments = comments.append(df_issues, ignore_index=True)
+            if pr:
+                df_pr, pr_total, pr_count, pr_end_cursor, last_pr = extract_data(data, date, 'pullRequests')
+                comments = comments.append(df_pr, ignore_index=True)
+            if issue:
+                df_issues, issue_total, issue_count, issue_end_cursor, last_issue = extract_data(data, date, 'issues')
+                comments = comments.append(df_issues, ignore_index=True)
 
-        downloaded_issues = \
-            len(comments[lambda x: x['type'] == 'issues'].drop_duplicates('number'))
-        downloaded_prs = \
-            len(comments[lambda x: x['type'] == 'pullRequests'].drop_duplicates('number'))
+            downloaded_issues = len(comments[lambda x: x['type'] == 'issues'].drop_duplicates('number'))
+            downloaded_prs = len(comments[lambda x: x['type'] == 'pullRequests'].drop_duplicates('number'))
 
-        if last_issue is None and issue_total > downloaded_issues:
-            issue = True
-            beforeIssue = issue_end_cursor
-        else:
-            issue = False
-        if last_pr is None and pr_total > downloaded_prs:
-            pr = True
-            beforePr = pr_end_cursor
-        else:
-            pr = False
+            if last_issue is None and issue_total > downloaded_issues:
+                issue = True
+                beforeIssue = issue_end_cursor
+            else:
+                issue = False
+            if last_pr is None and pr_total > downloaded_prs:
+                pr = True
+                beforePr = pr_end_cursor
+            else:
+                pr = False
 
-        if not issue and not pr:
-            break
+            if not issue and not pr:
+                break
 
     return comments
 
@@ -385,7 +382,7 @@ def progress(repository, accounts, exclude, date, verbose, min_comments, max_com
     )
     if exclude != []:
         df = df[~df["author"].isin(exclude)]
-        
+
     if accounts != []:
         df = df[lambda x: x['author'].isin(accounts)]
 
@@ -436,7 +433,7 @@ predict the type of accounts. At least 10 comments is required for each account.
     prediction_progress.close()
 
     if output_type == 'json':
-        return (result.to_json(orient='records'))
+        return (result.reset_index().to_json(orient='records'))
     elif output_type == 'csv':
         return (result.to_csv())
     else:
@@ -446,7 +443,9 @@ predict the type of accounts. At least 10 comments is required for each account.
 # --- cli ---
 def arg_parser():
     parser = argparse.ArgumentParser(description='BoDeGa - Bot detection in Github')
-    parser.add_argument('repository', help='Name of a repository on GitHub ("owner/repo")')
+    parser.add_argument('--repositories', metavar='repository',
+        help='list of a repositories on GitHub in the form of ("owner/repo")',
+        required=False, default=list(), type=str, nargs='*')
     parser.add_argument(
         '--accounts', metavar='ACCOUNT', required=False, default=list(), type=str, nargs='*',
         help='User login of one or more accounts. Example: \
@@ -513,7 +512,7 @@ Please read more about it in the repository readme file.')
         with pandas.option_context('display.max_rows', None, 'display.max_columns', None):
             print(
                 progress(
-                    args.repository,
+                    args.repositories,
                     args.accounts,
                     args.exclude,
                     date,
