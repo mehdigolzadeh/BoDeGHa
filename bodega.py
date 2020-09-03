@@ -356,7 +356,7 @@ def gini(array):
     array = np.sort(array)
     index = np.arange(1, array.shape[0] + 1)
     n = array.shape[0]
-    return ((np.sum((2 * index - n - 1) * array)) / (n * np.sum(array)))
+    return round(((np.sum((2 * index - n - 1) * array)) / (n * np.sum(array))),3)
 
 
 def count_empty_comments(comments):
@@ -507,7 +507,7 @@ predict the type of accounts. At least 10 comments is required for each account.
                 empty=np.nan,
                 patterns=np.nan,
                 dispersion=np.nan,
-                prediction="Not sufficient data",
+                prediction="Few data",
             )
             .rename(columns={'author':'account','body':'comments','empty':'empty comments'})
         ),ignore_index=True)
@@ -519,7 +519,7 @@ predict the type of accounts. At least 10 comments is required for each account.
             'empty comments':np.nan,
             'patterns':np.nan,
             'dispersion':np.nan,
-            'prediction':"Account not found",
+            'prediction':"Not Found",
         },ignore_index=True)
     result = result.set_index('account')[['comments', 'empty comments', 'patterns', 'dispersion','prediction']]
 
