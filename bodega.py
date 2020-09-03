@@ -141,6 +141,28 @@ def get_comment_search_query(repository, pr, issue, beforePr, beforeIssue):
     return query
 
 
+def get_user_comment_query(user,maximum):
+    query = """
+    {
+    user(login: "%s") {
+        issueComments(last: %s) {
+        nodes {
+            createdAt
+            repository {
+            nameWithOwner
+            }
+            pullRequest {
+                number
+            }
+            body
+        }
+        }
+    }
+    }
+    """ % (user,maximum)
+    return query
+
+
 def extract_data(data, date_limit, issue_type='issues'):
     df = pandas.DataFrame()
     json_object = json.loads(data.decode('utf-8'))
@@ -182,52 +204,96 @@ def extract_data(data, date_limit, issue_type='issues'):
     return df, issue_total, issue_count, start_cursor, last_date
 
 
+def extract_user_data(account, data, date_limit):
+    df = pandas.DataFrame()
+    json_object = json.loads(data.decode('utf-8'))
+    if 'data' not in json_object:
+        return
+    if json_object["data"]["user"] is None:
+        return
+    
+    data = json_object["data"]["user"]["issueComments"]["nodes"]
+
+    last_date = None
+    for comment in data:
+        date = dateutil.parser.parse(comment['createdAt'], ignoretz=True)
+        if date is None:
+            continue
+        if date > date_limit:
+            df = df.append({
+                'author': account,
+                'body': (comment['body'] if comment['body'] is not None else ""),
+                'repository': comment["repository"]['nameWithOwner'],
+                'created_at': date,
+                'type': 'prs' if comment["pullRequest"] is not None else 'issues',
+                'empty': (1 if len(comment['body']) < 2 else 0)
+            }, ignore_index=True)
+
+    return df
+
+
 def process_comments(repositories, accounts, date, min_comments, max_comments, apikey):
     comments = pandas.DataFrame()
     pr = True
     issue = True
     beforePr = None
     beforeIssue = None
-    for repository in repositories:
-        while True:
-            data = download_comments(repository, apikey, pr, issue, beforePr, beforeIssue)
+    if accounts == []:
+        for repository in repositories:
+            while True:
+                data = download_comments(repository=repository, apikey=apikey, 
+                pr=pr, issue=issue, beforePr=beforePr, beforeIssue=beforeIssue)
 
-            if pr:
-                df_pr, pr_total, pr_count, pr_end_cursor, last_pr = extract_data(data, date, 'pullRequests')
-                comments = comments.append(df_pr, ignore_index=True)
-            if issue:
-                df_issues, issue_total, issue_count, issue_end_cursor, last_issue = extract_data(data, date, 'issues')
-                comments = comments.append(df_issues, ignore_index=True)
+                if pr:
+                    df_pr, pr_total, pr_count, pr_end_cursor, last_pr = extract_data(data, date, 'pullRequests')
+                    comments = comments.append(df_pr, ignore_index=True)
+                if issue:
+                    df_issues, issue_total, issue_count, issue_end_cursor, last_issue = extract_data(data, date, 'issues')
+                    comments = comments.append(df_issues, ignore_index=True)
 
-            downloaded_issues = len(comments[lambda x: x['type'] == 'issues'].drop_duplicates('number'))
-            downloaded_prs = len(comments[lambda x: x['type'] == 'pullRequests'].drop_duplicates('number'))
+                downloaded_issues = len(comments[lambda x: x['type'] == 'issues'].drop_duplicates('number'))
+                downloaded_prs = len(comments[lambda x: x['type'] == 'pullRequests'].drop_duplicates('number'))
 
-            if last_issue is None and issue_total > downloaded_issues:
-                issue = True
-                beforeIssue = issue_end_cursor
-            else:
-                issue = False
-            if last_pr is None and pr_total > downloaded_prs:
-                pr = True
-                beforePr = pr_end_cursor
-            else:
-                pr = False
+                if last_issue is None and issue_total > downloaded_issues:
+                    issue = True
+                    beforeIssue = issue_end_cursor
+                else:
+                    issue = False
+                if last_pr is None and pr_total > downloaded_prs:
+                    pr = True
+                    beforePr = pr_end_cursor
+                else:
+                    pr = False
 
-            if not issue and not pr:
-                break
-
+                if not issue and not pr:
+                    break
+    else:
+        for account in accounts:
+            comments = comments.append(
+                extract_user_data(account, download_comments(account=account, apikey=apikey, maximum=max_comments), date),
+                ignore_index=True)
     return comments
 
 
-def download_comments(repository, apikey, pr=True, issue=True, beforePr=None, beforeIssue=None):
-    req = Request(
-            "https://api.github.com/graphql",
-            json.dumps(
-                {
-                    "query": get_comment_search_query(repository, pr, issue, beforePr, beforeIssue)
-                }
-            ).encode('utf-8')
-        )
+def download_comments(repository="", apikey="", pr=True, issue=True, beforePr=None, beforeIssue=None, account="", maximum=0):
+    if account != "":
+        req = Request(
+                "https://api.github.com/graphql",
+                json.dumps(
+                    {
+                        "query": get_user_comment_query(account, maximum)
+                    }
+                ).encode('utf-8')
+            )
+    else:
+        req = Request(
+                "https://api.github.com/graphql",
+                json.dumps(
+                    {
+                        "query": get_comment_search_query(repository, pr, issue, beforePr, beforeIssue)
+                    }
+                ).encode('utf-8')
+            )
     req.add_header("Accept", "application/json")
     req.add_header("Content-Type", "application/json")
     req.add_header("Authorization", "Bearer {}".format(apikey))
@@ -355,13 +421,13 @@ def run_function_in_thread(pbar, function, max_value, args=[], kwargs={}):
     return ret[0]
 
 
-def progress(repository, accounts, exclude, date, verbose, min_comments, max_comments, apikey, output_type):
+def progress(repositories, accounts, exclude, date, verbose, min_comments, max_comments, apikey, output_type):
     download_progress = tqdm(
         total=25, desc='Downloading comments', smoothing=.1,
         bar_format='{desc}: {percentage:3.0f}%|{bar}', leave=False)
     comments = run_function_in_thread(
         download_progress, process_comments, 25,
-        args=[repository, accounts, date, min_comments, max_comments, apikey])
+        args=[repositories, accounts, date, min_comments, max_comments, apikey])
     download_progress.close()
 
     if comments is None:
@@ -428,9 +494,34 @@ predict the type of accounts. At least 10 comments is required for each account.
         prediction_progress, predict, 25, args=(model, df_clusters))
     if verbose is False:
         result = result[['account', 'prediction']]
-    result = result.set_index('account').sort_values(['prediction', 'account'])
+    result = result.sort_values(['prediction', 'account'])
 
     prediction_progress.close()
+
+    result = result.append(  
+        (
+            comments[lambda x: ~x['author'].isin(result.account)][['author','body']]
+            .groupby('author', as_index=False)
+            .count()
+            .assign(
+                empty=np.nan,
+                patterns=np.nan,
+                dispersion=np.nan,
+                prediction="Not sufficient data",
+            )
+            .rename(columns={'author':'account','body':'comments','empty':'empty comments'})
+        ),ignore_index=True)
+    
+    for account in (set(accounts) - set(result.account)):
+        result = result.append({
+            'account': account,
+            'comments':np.nan,
+            'empty comments':np.nan,
+            'patterns':np.nan,
+            'dispersion':np.nan,
+            'prediction':"Account not found",
+        },ignore_index=True)
+    result = result.set_index('account')[['comments', 'empty comments', 'patterns', 'dispersion','prediction']]
 
     if output_type == 'json':
         return (result.reset_index().to_json(orient='records'))
