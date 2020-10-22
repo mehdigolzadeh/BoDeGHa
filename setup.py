@@ -3,13 +3,13 @@ from setuptools import setup
 from codecs import open # To use a consistent encoding
 
 
-__package__ = 'bodega'
+__package__ = 'bodegha'
 __version__ = '0.2.3'
 __licence__ = 'LGPL3'
 __maintainer__ = 'Mehdi Golzadeh'
 __email__ = 'golzadeh.mehdi@gmail.com'
-__url__ = 'https://github.com/mehdigolzadeh/BoDeGa'
-__description__ = 'BoDeGA - Bot detector an automated tool to identify bots in GitHub by analysing comments patterns'
+__url__ = 'https://github.com/mehdigolzadeh/BoDeGHa'
+__description__ = 'BoDeGHA - Bot detector an automated tool to identify bots in GitHub by analysing comments patterns'
 __long_description__ = 'This tool accepts the name of a GitHub repository and a GitHub API key and computes its output in three steps.\\\
 The first step consists of downloading all comments from the specified GitHub repository thanks to GitHub GraphQL API. This step results in a list of commenters and their corresponding comments.\\\
 The second step consists of computing the number of comments, empty comments, comment patterns, and inequality between the number of comments within patterns.\\\
@@ -63,10 +63,10 @@ setup(
 
     entry_points={
         'console_scripts': [
-            'bodega=bodega:cli',
+            'bodegha=bodegha:cli',
         ]
     },
 
-    py_modules=['bodega'],
+    py_modules=['bodegha'],
     zip_safe=True,
 )

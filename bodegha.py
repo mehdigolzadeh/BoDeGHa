@@ -1,6 +1,6 @@
-#  Module bodega.py
+#  Module bodegha.py
 #
-#  Copyright (c) 2020 Mehdi Golzadeh <golzadeh.mehdi@gmail.com>.
+#  Copyright (c) 2020 Mehdi Golzadeh <golzadeh.mehdi@gmail.com>
 #
 #  Licensed under GNU Lesser General Public License version 3.0 (LGPL3);
 #  you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ from tqdm import tqdm
 
 
 # --- Exception ---
-class BodegaError(ValueError):
+class BodeghaError(ValueError):
     pass
 
 
@@ -368,10 +368,10 @@ def progress(repository, accounts, exclude, date, verbose, min_comments, max_com
     download_progress.close()
 
     if comments is None:
-        raise BodegaError('Download failed please check your apikey or required libraries.')
+        raise BodeghaError('Download failed please check your apikey or required libraries.')
 
     if len(comments) < 1:
-        raise BodegaError('Available comments are not enough to predict the type of accounts')
+        raise BodeghaError('Available comments are not enough to predict the type of accounts')
 
     df = (
         comments
@@ -390,7 +390,7 @@ def progress(repository, accounts, exclude, date, verbose, min_comments, max_com
         df = df[lambda x: x['author'].isin(accounts)]
 
     if(len(df) < 1):
-        raise BodegaError('There are not enough comments in the selected time period to\
+        raise BodeghaError('There are not enough comments in the selected time period to\
 predict the type of accounts. At least 10 comments is required for each account.')
 
     inputs = []
@@ -424,7 +424,7 @@ predict the type of accounts. At least 10 comments is required for each account.
     prediction_progress.set_description(tasks[0])
     model = run_function_in_thread(prediction_progress, get_model, 5)
     if model is None:
-        raise BodegaError('Could not load the model file')
+        raise BodeghaError('Could not load the model file')
 
     prediction_progress.set_description(tasks[1])
     result = run_function_in_thread(
@@ -445,7 +445,7 @@ predict the type of accounts. At least 10 comments is required for each account.
 
 # --- cli ---
 def arg_parser():
-    parser = argparse.ArgumentParser(description='BoDeGa - Bot detection in Github')
+    parser = argparse.ArgumentParser(description='BoDeGHa - Bot detection in Github')
     parser.add_argument('repository', help='Name of a repository on GitHub ("owner/repo")')
     parser.add_argument(
         '--accounts', metavar='ACCOUNT', required=False, default=list(), type=str, nargs='*',
@@ -523,7 +523,7 @@ Please read more about it in the repository readme file.')
                     apikey,
                     output_type
                 ))
-    except BodegaError as e:
+    except BodeghaError as e:
         sys.exit(e)
 
 
