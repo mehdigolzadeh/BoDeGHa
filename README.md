@@ -59,7 +59,7 @@ _The default start-date is 6 months before the current date.
 
 `--verbose` **To have verbose output result**
 > Example: $ bodegha repo_owner/repo_name --verbose --key <token>
- 
+
 _The default value is false, if you don't pass this parameter the output will only be the accounts and their type_
   
 `--min-comments MIN_COMMENTS` 		**Minimum number of pull request and issue comments that are required to analyze an account**
@@ -86,6 +86,11 @@ _This group of parameters is the type of output, e.g., if you pass --json you wi
 `--exclude [ACCOUNT [ACCOUNT ...]]` **List of accounts to be excluded from the analysis**
 
 > Example: $ bodegha repo_owner/repo_name --exclude mehdigolzadeh alexandredecan tommens --key <token>
+
+## As of version 1.0.0
+`--only-predicted` **Only list accounts that the prediction is available**
+> Example: $ bodegha repo_owner/repo_name --only-predicted
+ 
 
 ## Examples of BoDeGHa output (for illustration purposes only)
 ```

@@ -358,7 +358,7 @@ def run_function_in_thread(pbar, function, max_value, args=[], kwargs={}):
     return ret[0]
 
 
-def progress(repository, accounts, exclude, date, verbose, min_comments, max_comments, apikey, output_type):
+def progress(repository, accounts, exclude, date, verbose, min_comments, max_comments, apikey, output_type, only_predicted):
     download_progress = tqdm(
         total=25, desc='Downloading comments', smoothing=.1,
         bar_format='{desc}: {percentage:3.0f}%|{bar}', leave=False)
@@ -383,10 +383,10 @@ def progress(repository, accounts, exclude, date, verbose, min_comments, max_com
         .sort_values('created_at', ascending=False)
         .groupby('author').head(100)
     )
-    if exclude != []:
+    if len(exclude) > 0:
         df = df[~df["author"].isin(exclude)]
         
-    if accounts != []:
+    if len(accounts) > 0:
         df = df[lambda x: x['author'].isin(accounts)]
 
     if(len(df) < 1):
@@ -429,11 +429,45 @@ predict the type of accounts. At least 10 comments is required for each account.
     prediction_progress.set_description(tasks[1])
     result = run_function_in_thread(
         prediction_progress, predict, 25, args=(model, df_clusters))
+    
+    result = result.sort_values(['prediction', 'account']).assign(patterns= lambda x: x['patterns'].astype('Int64'))
+
+    if only_predicted == True:
+        result = result.append(  
+            (
+                comments[lambda x: ~x['author'].isin(result['account'])][['author','body']]
+                .groupby('author', as_index=False)
+                .count()
+                .assign(
+                    emptycomments=np.nan,
+                    patterns=np.nan,
+                    dispersion=np.nan,
+                    prediction="Unknown",
+                )
+                .rename(columns={'author':'account','body':'comments','emptycomments':'empty comments'})
+            ),ignore_index=True,sort=True)
+        
+        for identity in (set(accounts) - set(result['account'])):
+            result = result.append({
+                'account': identity,
+                'comments':np.nan,
+                'empty comments':np.nan,
+                'patterns':np.nan,
+                'dispersion':np.nan,
+                'prediction':"Not found",
+            },ignore_index=True,sort=True)
+    
     if verbose is False:
-        result = result[['account', 'prediction']]
-    result = result.set_index('account').sort_values(['prediction', 'account'])
+        result = result.set_index('account')[['prediction']]
+    else:
+        result = (
+            result
+            .set_index('account')
+            [['comments', 'empty comments', 'patterns', 'dispersion','prediction']]
+        )
 
     prediction_progress.close()
+    
 
     if output_type == 'json':
         return (result.reset_index().to_json(orient='records'))
@@ -450,11 +484,12 @@ def arg_parser():
     parser.add_argument(
         '--accounts', metavar='ACCOUNT', required=False, default=list(), type=str, nargs='*',
         help='User login of one or more accounts. Example: \
---accounts mehdigolzadeh alexandredecan tommens')
+--accounts mehdijuliani melgibson tomgucci')
     parser.add_argument(
         '--exclude', metavar='ACCOUNT', required=False, default=list(), type=str, nargs='*',
         help='List of accounts to be excluded in the analysis. Example: \
---exclude mehdigolzadeh alexandredecan tommens')
+--exclude mehdijuliani melgibson tomgucci')
+    
     parser.add_argument(
         '--start-date', type=str, required=False,
         default=None, help='Starting date of comments to be considered')
@@ -470,7 +505,10 @@ def arg_parser():
     parser.add_argument(
         '--key', metavar='APIKEY', required=True, type=str, default='',
         help='GitHub APIv4 key to download comments from GitHub GraphQL API')
-
+    parser.add_argument(
+        '--only-predicted', action="store_false", required=False, default=True,
+        help='Only list accounts that the prediction is available.')
+    
     group2 = parser.add_mutually_exclusive_group()
     group2.add_argument('--text', action='store_true', help='Print results as text.')
     group2.add_argument('--csv', action='store_true', help='Print results as csv.')
@@ -521,7 +559,8 @@ Please read more about it in the repository readme file.')
                     min_comments,
                     max_comments,
                     apikey,
-                    output_type
+                    output_type,
+                    args.only_predicted,
                 ))
     except BodeghaError as e:
         sys.exit(e)
