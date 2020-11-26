@@ -96,7 +96,7 @@ The model trained on the entire ground-truth dataset in order to enhance its pre
 
 ## Examples of BoDeGHa output (for illustration purposes only)
 ```
-$ bodegha request/request --key <my token> --start-date 01-01-2017  --verbose
+$ bodegha request/request --key <my token> --start-date 01-01-2017  --verbose  --only-predicted
                    comments  empty comments  patterns  dispersion prediction                          
 account                                                                     
 greenkeeperio-bot        12               0         1    0.108246        Bot
@@ -115,13 +115,13 @@ simov                    41               0        37    0.031932      Human
 ```
 
 ```
-$ bodegha fthomas/refined --key <my token> --start-date 01-01-2017  --verbose --min-comments 20 --max-comments 90 --json
+$ bodegha fthomas/refined --key <my token> --start-date 01-01-2017  --verbose --min-comments 20 --max-comments 90 --json  --only-predicted
 
 [{"account":"codecov","comments":90,"empty comments":0,"patterns":2,"dispersion":0.2501228703,"prediction":"Bot"},{"account":"codecov-io","comments":51,"empty comments":0,"patterns":2,"dispersion":0.2291022525,"prediction":"Bot"},{"account":"scala-steward","comments":90,"empty comments":0,"patterns":1,"dispersion":0.1819953352,"prediction":"Bot"},{"account":"NeQuissimus","comments":36,"empty comments":0,"patterns":36,"dispersion":0.0282932021,"prediction":"Human"},{"account":"erikerlandson","comments":20,"empty comments":1,"patterns":20,"dispersion":0.0314103784,"prediction":"Human"},{"account":"fthomas","comments":90,"empty comments":14,"patterns":63,"dispersion":0.0441094382,"prediction":"Human"},{"account":"howyp","comments":43,"empty comments":1,"patterns":43,"dispersion":0.0321397659,"prediction":"Human"}]
 ```
 
 ```
-$ bodegha servo/servo --key <my token> --verbose --max-comments 80 --csv --accounts bors-servo Darkspirit Eijebong PeterZhizhin SimonSapin highfive
+$ bodegha servo/servo --key <my token> --verbose --max-comments 80 --csv --accounts bors-servo Darkspirit Eijebong PeterZhizhin SimonSapin highfive  --only-predicted
 
 account,comments,empty comments,patterns,dispersion,prediction                                        
 bors-servo,80,0,11,0.12661359778212722,Bot
