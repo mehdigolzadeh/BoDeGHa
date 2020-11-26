@@ -90,7 +90,9 @@ _This group of parameters is the type of output, e.g., if you pass --json you wi
 ## As of version 1.0.0
 `--only-predicted` **Only list accounts that the prediction is available**
 > Example: $ bodegha repo_owner/repo_name --only-predicted
- 
+
+## As of version 1.0.1
+The model trained on the entire ground-truth dataset in order to enhance its prediction power. 
 
 ## Examples of BoDeGHa output (for illustration purposes only)
 ```
