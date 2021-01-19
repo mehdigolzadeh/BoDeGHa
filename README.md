@@ -43,7 +43,7 @@ deactivate
 ## Usage 
 To run *BoDeGHa* you need to provide a *GitHub personal access token* (API key). You can follow the instruction [here](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token) to obtain such a token (**You don't need any of permissions in the list**).
 
-You can execute the tool with all default parameters by running `bodegha repo_owner\repo_name --apikey <token>`
+You can execute the tool with all default parameters by running `bodegha repo_owner\repo_name --key <token>`
 
 Here is the list of parameters:
 
