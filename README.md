@@ -35,7 +35,7 @@ If you want to consult or cite the ground-truth dataset, please refer to the fol
       publisher = {Zenodo},
       doi = {10.5281/zenodo.4000388},
       URL = {http://doi.org/10.5281/zenodo.4000388}
-      }
+}
 ```
 
 ## Installation
