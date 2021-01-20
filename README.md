@@ -1,18 +1,42 @@
 # BoDeGHa 
 _(previously BoDeGa)_
 
-An automated tool to identify bots in GitHub repositories by analysing pull request and issue comments. This tool is a part of our [study about identifying bots](https://arxiv.org/abs/2010.03303) published in the journal of systems and software journal.
-The tool has been developed by Mehdi Golzadeh, researcher at the Software Engineering Lab of the University of Mons (Belgium) as part of his PhD research.
+An automated tool to identify bots in GitHub repositories by analysing pull request and issue comments. 
+The tool has been developed by Mehdi Golzadeh, researcher at the [Software Engineering Lab](http://informatique.umons.ac.be/genlog/) of the [University of Mons](https://www.umons.ac.be) (Belgium) as part of his PhD research in the context of the [SECO-ASSIST Excellence of Science research project](https://secoassist.github.io).
 
-This tool accepts the name of a GitHub repository and requires a GitHub API key to compute its output in three steps.
-The first step consists of downloading all pull request and issue comments from the specified repository thanks to GitHub GraphQL API. This step results in a list of commenters and their corresponding pull request and issue comments.
+The tool accepts the name of a GitHub repository and requires a GitHub API key to compute its output in three steps.
+The first step consists of downloading all pull request comments and issue comments from the specified repository using the GitHub GraphQL API. This step results in a list of commenters and their corresponding pull request and issue comments.
 The second step consists of computing the following features that are needed for the classification model: the number of comments, empty comments, comment patterns, and inequality between the number of comments within patterns.
 The third step applies the classification model on the repository data and outputs the bot prediction made by the classification model.
 
-Note that the tool comes with a classification model that has been tested using a test set and cannot reach a precision and recall of 100%. The accuracy may differ from one project to another, it really depends on the types of accounts and comments. In some cases such as the use of templates in comments by human commenters may give rise to more misclassifications than usual (details about reasons for misclassifications can again be found in the discussion section of the companion [reserach article](https://arxiv.org/abs/2010.03303)). Moreover,  Since we did not investigate the model's performance on less than 10 and more than 100 comments we set the default value of 10 for *--min-comments* and 100 for *--max-comments*, and one can run the tool with other values on their own risk.
+**Note about misclassifications** The tool is based on a classification model that has been validated on a [ground-truth dataset](https://doi.org/10.5281/zenodo.4000387), and cannot reach a precision and recall of 100%. The accuracy may differ from one project to another, depending on the amount and types of accounts and comments. When running the tool on a GitHub repository of your choice, it is therefore possible that the tool may produce misclassifications in practice (humans misclassified as bots, or vice versa). For more details we refer to the association research publication. If you would encounter such situations while running the tool, please inform us about it, so that we can strive to further improve the accurracy of the classification algorithm. A known reason for the presence of misclassifations is the use of templates in pull request and issue comments by human commenters.
+Since the classification model's performance has been validated on accounts containing between 10 and 100 comments, the default parameters of the tool have been set to 10 for *--min-comments* and 100 for *--max-comments*. One can run the tool with other values on its own risk, without any guarantees on the accuracy.
 
-**Important note!** When running the tool on a GitHub repository of your choice, it is possible, though unfrequent, for some human accounts or bot accounts to be misclassified by the classification model. If you would encounter such situations while running the tool, please inform us about it, so that we can strive to further improve the accurracy of the classification algorithm.
 
+## Publication
+This tool is a part of an empirical research endeavour aiming to identify bots in GitHub. A preprint of the research article, published in the Journal on Systems and Software, is available on [arXiv](https://arxiv.org/abs/2010.03303). To cite this article, please use the following citation:
+
+```
+@article{Golzadeh2021JSS,
+      title={A ground-truth dataset and classification model for detecting bots in GitHub issue and PR comments}, 
+      author={Golzadeh, Mehdi and Decan, Alexandre and Legay, Damien and Mens, Tom},
+      year={2021},
+      eprint={arXiv:2010.03303},
+      journal = {Journal of Systems and Software},
+      doi = {TO BE PROVIDED}
+}
+```
+If you want to consult or cite the ground-truth dataset, please refer to the following citation:
+```
+@misc{Golzadeh2020dataset,
+      title={A ground-truth dataset to identify bots in GitHub},
+      author={Golzadeh, Mehdi and Decan, Alexandre and Legay, Damien and Mens, Tom},
+      year = 2020,
+      publisher = {Zenodo},
+      doi = {10.5281/zenodo.4000388},
+      URL = {http://doi.org/10.5281/zenodo.4000388}
+}
+```
 
 ## Installation
 To install BoDeGHa, run the following command:
@@ -29,7 +53,7 @@ Create a virtual environment in the folder where you want to place your files:
 ```
 virtualenv <name>
 ```
-Start using the environmnet by:
+Start using the environment by:
 ```
 source <name>/bin/activate
 ```
@@ -41,7 +65,7 @@ deactivate
 
 
 ## Usage 
-To run *BoDeGHa* you need to provide a *GitHub personal access token* (API key). You can follow the instruction [here](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token) to obtain such a token (**You don't need any of permissions in the list**).
+To run *BoDeGHa* you need to provide a *GitHub personal access token* (API key). You can follow the instructions [here](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token) to obtain such a token (**You don't need any of permissions in the list**).
 
 You can execute the tool with all default parameters by running `bodegha repo_owner\repo_name --key <token>`
 
@@ -82,17 +106,12 @@ _This parameter is mandatory and you can obtain an access token as described ear
 
 _This group of parameters is the type of output, e.g., if you pass --json you will get the result in JSON format_
 
-#### As of version 0.2.3
 `--exclude [ACCOUNT [ACCOUNT ...]]` **List of accounts to be excluded from the analysis**
-
 > Example: $ bodegha repo_owner/repo_name --exclude mehdigolzadeh alexandredecan tommens --key <token>
 
-#### As of version 1.0.0
 `--only-predicted` **Only list accounts that the prediction is available**
 > Example: $ bodegha repo_owner/repo_name --only-predicted
 
-#### As of version 1.0.1
-The model trained on the entire ground-truth dataset in order to enhance its prediction power. 
 
 ## Examples of BoDeGHa output (for illustration purposes only)
 ```
