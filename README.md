@@ -16,17 +16,18 @@ Since the classification model's performance has been validated on accounts cont
 ## Publication
 This tool is a part of an empirical research endeavour aiming to identify bots in GitHub. A preprint of the research article, published in the Journal on Systems and Software, is available on [arXiv](https://arxiv.org/abs/2010.03303). To cite this article, please use the following citation:
 
-> @article{Golzadeh2021JSS,
->       title={A ground-truth dataset and classification model for detecting bots in GitHub issue and PR comments}, 
->       author={Golzadeh, Mehdi and Decan, Alexandre and Legay, Damien and Mens, Tom},
->       year={2021},
->       eprint={arXiv:2010.03303},
->       journal = {Journal of Systems and Software},
->       doi = {TO BE PROVIDED}
-> }
-
+```
+@article{Golzadeh2021JSS,
+      title={A ground-truth dataset and classification model for detecting bots in GitHub issue and PR comments}, 
+      author={Golzadeh, Mehdi and Decan, Alexandre and Legay, Damien and Mens, Tom},
+      year={2021},
+      eprint={arXiv:2010.03303},
+      journal = {Journal of Systems and Software},
+      doi = {TO BE PROVIDED}
+}
+```
 If you want to consult or cite the ground-truth dataset, please refer to the following citation:
-
+```
 @misc{Golzadeh2020dataset,
       title={A ground-truth dataset to identify bots in GitHub},
       author={Golzadeh, Mehdi and Decan, Alexandre and Legay, Damien and Mens, Tom},
@@ -35,7 +36,7 @@ If you want to consult or cite the ground-truth dataset, please refer to the fol
       doi = {10.5281/zenodo.4000388},
       URL = {http://doi.org/10.5281/zenodo.4000388}
       }
-
+```
 
 ## Installation
 To install BoDeGHa, run the following command:
