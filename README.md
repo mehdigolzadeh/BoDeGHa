@@ -9,7 +9,7 @@ The first step consists of downloading all pull request and issue comments from 
 The second step consists of computing the following features that are needed for the classification model: the number of comments, empty comments, comment patterns, and inequality between the number of comments within patterns.
 The third step applies the classification model on the repository data and outputs the bot prediction made by the classification model.
 
-Note that the tool comes with a classification model that has been tested using a test set and cannot reach a precision and recall of 100%. The accuracy may differ from one project to another, it really depends on the types of accounts and comments. In some cases such as the use of templates in comments by human commenters may give rise to more misclassifications than usual (details about reasons for misclassifications can again be found in the discussion section of the companion paper). Moreover,  Since we did not investigate the model's performance on less than 10 and more than 100 comments we set the default value of 10 for *--min-comments* and 100 for *--max-comment*, and one can run the tool with other values on their own risk.
+Note that the tool comes with a classification model that has been tested using a test set and cannot reach a precision and recall of 100%. The accuracy may differ from one project to another, it really depends on the types of accounts and comments. In some cases such as the use of templates in comments by human commenters may give rise to more misclassifications than usual (details about reasons for misclassifications can again be found in the discussion section of the companion paper). Moreover,  Since we did not investigate the model's performance on less than 10 and more than 100 comments we set the default value of 10 for *--min-comments* and 100 for *--max-comments*, and one can run the tool with other values on their own risk.
 
 **Important note!** When running the tool on a GitHub repository of your choice, it is possible, though unfrequent, for some human accounts or bot accounts to be misclassified by the classification model. If you would encounter such situations while running the tool, please inform us about it, so that we can strive to further improve the accurracy of the classification algorithm.
 
@@ -63,12 +63,12 @@ _The default start-date is 6 months before the current date.
 _The default value is false, if you don't pass this parameter the output will only be the accounts and their type_
   
 `--min-comments MIN_COMMENTS` 		**Minimum number of pull request and issue comments that are required to analyze an account**
-> Example: $ bodegha repo_owner/repo_name --min-comment 20 --key <token>
+> Example: $ bodegha repo_owner/repo_name --min-comments 20 --key <token>
  
 _The default value is 10 comments (the reason explained earlier in this file)_
 
 `--max-comments MAX_COMMENTS` 		**Maximum number of pull request and issue comments to be considered for each account (default=100)**
-> Example: $ bodegha repo_owner/repo_name --max-comment 120 --key <token>
+> Example: $ bodegha repo_owner/repo_name --max-comments 120 --key <token>
 
 _The default value is 100 comments (the reason explained earlier in this file)_
 
@@ -133,5 +133,5 @@ SimonSapin,80,3,57,0.04771309733409579,Human
 ```
 
 ## License
-This tool is distributed under [LGPLv3 - GNU Lesser General Public License, version 3.] (https://github.com/mehdigolzadeh/BoDeGHa/blob/master/LICENSE.txt)
+This tool is distributed under [LGPLv3 - GNU Lesser General Public License, version 3](https://github.com/mehdigolzadeh/BoDeGHa/blob/master/LICENSE.txt).
 
