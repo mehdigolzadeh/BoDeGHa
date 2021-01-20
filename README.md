@@ -1,7 +1,7 @@
 # BoDeGHa 
 _(previously BoDeGa)_
 
-An automated tool to identify bots in GitHub repositories by analysing pull request and issue comments.
+An automated tool to identify bots in GitHub repositories by analysing pull request and issue comments. This tool is a part of our [study about identifying bots](https://arxiv.org/abs/2010.03303) published in the journal of systems and software journal.
 The tool has been developed by Mehdi Golzadeh, researcher at the Software Engineering Lab of the University of Mons (Belgium) as part of his PhD research.
 
 This tool accepts the name of a GitHub repository and requires a GitHub API key to compute its output in three steps.
@@ -9,7 +9,7 @@ The first step consists of downloading all pull request and issue comments from 
 The second step consists of computing the following features that are needed for the classification model: the number of comments, empty comments, comment patterns, and inequality between the number of comments within patterns.
 The third step applies the classification model on the repository data and outputs the bot prediction made by the classification model.
 
-More details about the classification model can be found in a companion research article that is currently under peer review.
+Note that the tool comes with a classification model that has been tested using a test set and cannot reach a precision and recall of 100%. The accuracy may differ from one project to another, it really depends on the types of accounts and comments. In some cases such as the use of templates in comments by human commenters may give rise to more misclassifications than usual (details about reasons for misclassifications can again be found in the discussion section of the companion paper). Moreover,  Since we did not investigate the model's performance on less than 10 and more than 100 comments we set the default value of 10 for *--min-comments* and 100 for *--max-comment*, and one can run the tool with other values on their own risk.
 
 **Important note!** When running the tool on a GitHub repository of your choice, it is possible, though unfrequent, for some human accounts or bot accounts to be misclassified by the classification model. If you would encounter such situations while running the tool, please inform us about it, so that we can strive to further improve the accurracy of the classification algorithm.
 
@@ -65,12 +65,12 @@ _The default value is false, if you don't pass this parameter the output will on
 `--min-comments MIN_COMMENTS` 		**Minimum number of pull request and issue comments that are required to analyze an account**
 > Example: $ bodegha repo_owner/repo_name --min-comment 20 --key <token>
  
-_The default value is 10 comments_
+_The default value is 10 comments (the reason explained earlier in this file)_
 
 `--max-comments MAX_COMMENTS` 		**Maximum number of pull request and issue comments to be considered for each account (default=100)**
 > Example: $ bodegha repo_owner/repo_name --max-comment 120 --key <token>
 
-_The default value is 100 comments_
+_The default value is 100 comments (the reason explained earlier in this file)_
 
 `--key APIKEY` 				**GitHub personal access token required to download comments from GitHub GraphQL API**
 _This parameter is mandatory and you can obtain an access token as described earlier_
@@ -82,16 +82,16 @@ _This parameter is mandatory and you can obtain an access token as described ear
 
 _This group of parameters is the type of output, e.g., if you pass --json you will get the result in JSON format_
 
-## As of version 0.2.3
+### As of version 0.2.3
 `--exclude [ACCOUNT [ACCOUNT ...]]` **List of accounts to be excluded from the analysis**
 
 > Example: $ bodegha repo_owner/repo_name --exclude mehdigolzadeh alexandredecan tommens --key <token>
 
-## As of version 1.0.0
+### As of version 1.0.0
 `--only-predicted` **Only list accounts that the prediction is available**
 > Example: $ bodegha repo_owner/repo_name --only-predicted
 
-## As of version 1.0.1
+### As of version 1.0.1
 The model trained on the entire ground-truth dataset in order to enhance its prediction power. 
 
 ## Examples of BoDeGHa output (for illustration purposes only)
@@ -131,3 +131,7 @@ Eijebong,27,2,23,0.02551053114396642,Human
 PeterZhizhin,13,0,12,0.025372037602093358,Human
 SimonSapin,80,3,57,0.04771309733409579,Human
 ```
+
+## License
+This tool is distributed under [LGPLv3 - GNU Lesser General Public License, version 3.] (https://github.com/mehdigolzadeh/BoDeGHa/blob/master/LICENSE.txt)
+
