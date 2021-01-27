@@ -381,8 +381,10 @@ def progress(repository, accounts, exclude, date, verbose, min_comments, max_com
             .count()[lambda x: x['body'] >= min_comments]['author'].values
         )]
         .sort_values('created_at', ascending=False)
-        .groupby('author').head(100)
+        .groupby('author').head(max_comments)
     )
+
+
     if len(exclude) > 0:
         df = df[~df["author"].isin(exclude)]
         
@@ -415,7 +417,7 @@ predict the type of accounts. At least 10 comments is required for each account.
                 leave=False):
             data.append(result)
 
-    df_clusters = pandas.DataFrame(
+    result = pandas.DataFrame(
         data=data, columns=['account', 'comments', 'empty comments', 'patterns', 'dispersion'])
 
     prediction_progress = tqdm(
@@ -426,10 +428,15 @@ predict the type of accounts. At least 10 comments is required for each account.
     if model is None:
         raise BodeghaError('Could not load the model file')
 
-    prediction_progress.set_description(tasks[1])
-    result = run_function_in_thread(
-        prediction_progress, predict, 25, args=(model, df_clusters))
+    result = (
+        result
+        .assign(
+            prediction=lambda x: np.where(model.predict(
+                x[['comments', 'empty comments', 'patterns', 'dispersion']]) == 1, 'Bot', 'Human')
+        )
+    )
     
+    del model
     result = result.sort_values(['prediction', 'account']).assign(patterns= lambda x: x['patterns'].astype('Int64'))
 
     if only_predicted == True:
@@ -524,14 +531,10 @@ def cli():
     if args.start_date is not None:
         date = dateutil.parser.parse(args.start_date)
 
-    if args.min_comments < 10:
-        sys.exit('Minimum number of required comments for the model is 10.')
+    if args.min_comments > args.max_comments:
+        sys.exit('The minimum number of comments should be less than the maximum number of comments.')
     else:
         min_comments = args.min_comments
-
-    if args.max_comments < 10:
-        sys.exit('Maximum number of comments cannot be less than 10.')
-    else:
         max_comments = args.max_comments
 
     if args.key == '' or len(args.key) < 35:
