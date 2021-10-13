@@ -21,9 +21,10 @@ This tool is a part of an empirical research endeavour aiming to identify bots i
       title={A ground-truth dataset and classification model for detecting bots in GitHub issue and PR comments}, 
       author={Golzadeh, Mehdi and Decan, Alexandre and Legay, Damien and Mens, Tom},
       year={2021},
-      eprint={arXiv:2010.03303},
+      volume = 175,
+      month = {may},
       journal = {Journal of Systems and Software},
-      doi = {TO BE PROVIDED}
+      doi = {https://doi.org/10.1016/j.jss.2021.110911}
 }
 ```
 If you want to consult or cite the ground-truth dataset, please refer to the following citation:
