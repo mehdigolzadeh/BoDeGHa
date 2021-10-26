@@ -157,5 +157,5 @@ This tool is distributed under [LGPLv3 - GNU Lesser General Public License, vers
       
 
 ## Contributors
-![alt text](https://github.com/mehdigolzadeh/BoDeGHa/blob/master/CONTRIBUTORS.svg?raw=true)
+![Contributors](https://github.com/mehdigolzadeh/BoDeGHa/blob/master/CONTRIBUTORS.svg?raw=true)
 
