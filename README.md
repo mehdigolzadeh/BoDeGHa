@@ -154,4 +154,8 @@ SimonSapin,80,3,57,0.04771309733409579,Human
 
 ## License
 This tool is distributed under [LGPLv3 - GNU Lesser General Public License, version 3](https://github.com/mehdigolzadeh/BoDeGHa/blob/master/LICENSE.txt).
+      
+
+## Contributors
+![alt text](https://github.com/mehdigolzadeh/BoDeGHa/blob/master/CONTRIBUTORS.svg?raw=true)
 
