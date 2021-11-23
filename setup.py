@@ -4,7 +4,7 @@ from codecs import open # To use a consistent encoding
 
 
 __package__ = 'bodegha'
-__version__ = '1.0.1'
+__version__ = '1.0.2'
 __licence__ = 'LGPL3'
 __maintainer__ = 'Mehdi Golzadeh'
 __email__ = 'golzadeh.mehdi@gmail.com'
@@ -29,11 +29,11 @@ __classifiers__=[
 __requirement__ = [
         'python-dateutil >= 2.7.5',
         'pandas >= 0.23.4',
-        'scikit-learn == 0.22',
+        'scikit-learn == 1.0.1',
         'argparse >= 1.1',
         'tqdm >= 4.41.1',
         'urllib3 >= 1.25',
-        'python-levenshtein >= 0.12.0',
+        'python-levenshtein >= 0.12.2',
         'numpy >= 1.17.4',
 ]
 
