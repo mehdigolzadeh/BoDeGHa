@@ -371,7 +371,7 @@ def progress(repository, accounts, exclude, date, verbose, min_comments, max_com
     download_progress.close()
 
     if comments is None:
-        raise BodeghaError('Download failed please check your apikey or required libraries.')
+        raise BodeghaError('Download failed please check stack trace and resolve the issues (401: Unauthorized means your api key is not a valid key).')
 
     if len(comments) < 1:
         raise BodeghaError('Available comments are not enough to predict the type of accounts')
