@@ -147,6 +147,8 @@ def extract_data(data, date_limit, issue_type='issues'):
     if 'data' not in json_object:
         return
     data = json_object["data"]["repository"]
+    if data == None:
+        raise BodeghaError(json_object["errors"][0]["message"])
     issue_total = data[issue_type]['totalCount']
     start_cursor = data[issue_type]['pageInfo']['startCursor']
     issue_count = len(data[issue_type]['edges'])
@@ -200,10 +202,11 @@ def process_comments(repository, accounts, date, min_comments, max_comments, api
                 extract_data(data, date, 'issues')
             comments = comments.append(df_issues, ignore_index=True)
 
-        downloaded_issues = \
-            len(comments[lambda x: x['type'] == 'issues'].drop_duplicates('number'))
-        downloaded_prs = \
-            len(comments[lambda x: x['type'] == 'pullRequests'].drop_duplicates('number'))
+        if len(comments)>0:
+            downloaded_issues = \
+                len(comments[lambda x: x['type'] == 'issues'].drop_duplicates('number'))
+            downloaded_prs = \
+                len(comments[lambda x: x['type'] == 'pullRequests'].drop_duplicates('number'))
 
         if last_issue is None and issue_total > downloaded_issues:
             issue = True
@@ -368,7 +371,7 @@ def progress(repository, accounts, exclude, date, verbose, min_comments, max_com
     download_progress.close()
 
     if comments is None:
-        raise BodeghaError('Download failed please check your apikey or required libraries.')
+        raise BodeghaError('Download failed please check stack trace and resolve the issues (401: Unauthorized means your api key is not a valid key).')
 
     if len(comments) < 1:
         raise BodeghaError('Available comments are not enough to predict the type of accounts')
@@ -391,53 +394,56 @@ def progress(repository, accounts, exclude, date, verbose, min_comments, max_com
     if len(accounts) > 0:
         df = df[lambda x: x['author'].isin(accounts)]
 
-    if(len(df) < 1):
-        raise BodeghaError('There are not enough comments in the selected time period to\
-predict the type of accounts. At least 10 comments is required for each account.')
+    if(len(df) > 1):
+#         raise BodeghaError('There are not enough comments in the selected time period to\
+# predict the type of accounts. At least 10 comments is required for each account.')
 
-    inputs = []
-    for author, group in df.groupby('author'):
-        inputs.append(
-            (
-                author,
-                group.copy(),
-                max_comments,
-                {'func': average_jac_lev, 'source': 'body', 'eps': 0.5}
+        inputs = []
+        for author, group in df.groupby('author'):
+            inputs.append(
+                (
+                    author,
+                    group.copy(),
+                    max_comments,
+                    {'func': average_jac_lev, 'source': 'body', 'eps': 0.5}
+                )
+            )
+
+        data = []
+        with Pool() as pool:
+            for result in tqdm(
+                    pool.imap_unordered(task, inputs),
+                    desc='Computing features',
+                    total=len(inputs),
+                    smoothing=.1,
+                    bar_format='{desc}: {percentage:3.0f}%|{bar}',
+                    leave=False):
+                data.append(result)
+
+        result = pandas.DataFrame(
+            data=data, columns=['account', 'comments', 'empty comments', 'patterns', 'dispersion'])
+
+        prediction_progress = tqdm(
+            total=25, smoothing=.1, bar_format='{desc}: {percentage:3.0f}%|{bar}', leave=False)
+        tasks = ['Loading model', 'Making prediction', 'Exporting result']
+        prediction_progress.set_description(tasks[0])
+        model = run_function_in_thread(prediction_progress, get_model, 5)
+        if model is None:
+            raise BodeghaError('Could not load the model file')
+
+        result = (
+            result
+            .assign(
+                prediction=lambda x: np.where(model.predict(
+                    x[['comments', 'empty comments', 'patterns', 'dispersion']]) == 1, 'Bot', 'Human')
             )
         )
-
-    data = []
-    with Pool() as pool:
-        for result in tqdm(
-                pool.imap_unordered(task, inputs),
-                desc='Computing features',
-                total=len(inputs),
-                smoothing=.1,
-                bar_format='{desc}: {percentage:3.0f}%|{bar}',
-                leave=False):
-            data.append(result)
-
-    result = pandas.DataFrame(
-        data=data, columns=['account', 'comments', 'empty comments', 'patterns', 'dispersion'])
-
-    prediction_progress = tqdm(
-        total=25, smoothing=.1, bar_format='{desc}: {percentage:3.0f}%|{bar}', leave=False)
-    tasks = ['Loading model', 'Making prediction', 'Exporting result']
-    prediction_progress.set_description(tasks[0])
-    model = run_function_in_thread(prediction_progress, get_model, 5)
-    if model is None:
-        raise BodeghaError('Could not load the model file')
-
-    result = (
-        result
-        .assign(
-            prediction=lambda x: np.where(model.predict(
-                x[['comments', 'empty comments', 'patterns', 'dispersion']]) == 1, 'Bot', 'Human')
-        )
-    )
-    
-    del model
-    result = result.sort_values(['prediction', 'account']).assign(patterns= lambda x: x['patterns'].astype('Int64'))
+        
+        del model
+        result = result.sort_values(['prediction', 'account']).assign(patterns= lambda x: x['patterns'].astype('Int64'))
+        prediction_progress.close()
+    else:
+        result=pandas.DataFrame(columns = ['account', 'comments', 'empty comments', 'patterns', 'dispersion'])
 
     if only_predicted == True:
         result = result.append(  
@@ -472,9 +478,6 @@ predict the type of accounts. At least 10 comments is required for each account.
             .set_index('account')
             [['comments', 'empty comments', 'patterns', 'dispersion','prediction']]
         )
-
-    prediction_progress.close()
-    
 
     if output_type == 'json':
         return (result.reset_index().to_json(orient='records'))
