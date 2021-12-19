@@ -147,6 +147,8 @@ def extract_data(data, date_limit, issue_type='issues'):
     if 'data' not in json_object:
         return
     data = json_object["data"]["repository"]
+    if data == None:
+        raise BodeghaError(json_object["errors"][0]["message"])
     issue_total = data[issue_type]['totalCount']
     start_cursor = data[issue_type]['pageInfo']['startCursor']
     issue_count = len(data[issue_type]['edges'])
