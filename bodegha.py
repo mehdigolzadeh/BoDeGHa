@@ -202,10 +202,11 @@ def process_comments(repository, accounts, date, min_comments, max_comments, api
                 extract_data(data, date, 'issues')
             comments = comments.append(df_issues, ignore_index=True)
 
-        downloaded_issues = \
-            len(comments[lambda x: x['type'] == 'issues'].drop_duplicates('number'))
-        downloaded_prs = \
-            len(comments[lambda x: x['type'] == 'pullRequests'].drop_duplicates('number'))
+        if len(comments)>0:
+            downloaded_issues = \
+                len(comments[lambda x: x['type'] == 'issues'].drop_duplicates('number'))
+            downloaded_prs = \
+                len(comments[lambda x: x['type'] == 'pullRequests'].drop_duplicates('number'))
 
         if last_issue is None and issue_total > downloaded_issues:
             issue = True
