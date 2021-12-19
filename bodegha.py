@@ -394,53 +394,56 @@ def progress(repository, accounts, exclude, date, verbose, min_comments, max_com
     if len(accounts) > 0:
         df = df[lambda x: x['author'].isin(accounts)]
 
-    if(len(df) < 1):
-        raise BodeghaError('There are not enough comments in the selected time period to\
-predict the type of accounts. At least 10 comments is required for each account.')
+    if(len(df) > 1):
+#         raise BodeghaError('There are not enough comments in the selected time period to\
+# predict the type of accounts. At least 10 comments is required for each account.')
 
-    inputs = []
-    for author, group in df.groupby('author'):
-        inputs.append(
-            (
-                author,
-                group.copy(),
-                max_comments,
-                {'func': average_jac_lev, 'source': 'body', 'eps': 0.5}
+        inputs = []
+        for author, group in df.groupby('author'):
+            inputs.append(
+                (
+                    author,
+                    group.copy(),
+                    max_comments,
+                    {'func': average_jac_lev, 'source': 'body', 'eps': 0.5}
+                )
+            )
+
+        data = []
+        with Pool() as pool:
+            for result in tqdm(
+                    pool.imap_unordered(task, inputs),
+                    desc='Computing features',
+                    total=len(inputs),
+                    smoothing=.1,
+                    bar_format='{desc}: {percentage:3.0f}%|{bar}',
+                    leave=False):
+                data.append(result)
+
+        result = pandas.DataFrame(
+            data=data, columns=['account', 'comments', 'empty comments', 'patterns', 'dispersion'])
+
+        prediction_progress = tqdm(
+            total=25, smoothing=.1, bar_format='{desc}: {percentage:3.0f}%|{bar}', leave=False)
+        tasks = ['Loading model', 'Making prediction', 'Exporting result']
+        prediction_progress.set_description(tasks[0])
+        model = run_function_in_thread(prediction_progress, get_model, 5)
+        if model is None:
+            raise BodeghaError('Could not load the model file')
+
+        result = (
+            result
+            .assign(
+                prediction=lambda x: np.where(model.predict(
+                    x[['comments', 'empty comments', 'patterns', 'dispersion']]) == 1, 'Bot', 'Human')
             )
         )
-
-    data = []
-    with Pool() as pool:
-        for result in tqdm(
-                pool.imap_unordered(task, inputs),
-                desc='Computing features',
-                total=len(inputs),
-                smoothing=.1,
-                bar_format='{desc}: {percentage:3.0f}%|{bar}',
-                leave=False):
-            data.append(result)
-
-    result = pandas.DataFrame(
-        data=data, columns=['account', 'comments', 'empty comments', 'patterns', 'dispersion'])
-
-    prediction_progress = tqdm(
-        total=25, smoothing=.1, bar_format='{desc}: {percentage:3.0f}%|{bar}', leave=False)
-    tasks = ['Loading model', 'Making prediction', 'Exporting result']
-    prediction_progress.set_description(tasks[0])
-    model = run_function_in_thread(prediction_progress, get_model, 5)
-    if model is None:
-        raise BodeghaError('Could not load the model file')
-
-    result = (
-        result
-        .assign(
-            prediction=lambda x: np.where(model.predict(
-                x[['comments', 'empty comments', 'patterns', 'dispersion']]) == 1, 'Bot', 'Human')
-        )
-    )
-    
-    del model
-    result = result.sort_values(['prediction', 'account']).assign(patterns= lambda x: x['patterns'].astype('Int64'))
+        
+        del model
+        result = result.sort_values(['prediction', 'account']).assign(patterns= lambda x: x['patterns'].astype('Int64'))
+        prediction_progress.close()
+    else:
+        result=pandas.DataFrame(columns = ['account', 'comments', 'empty comments', 'patterns', 'dispersion'])
 
     if only_predicted == True:
         result = result.append(  
