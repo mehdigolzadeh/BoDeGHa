@@ -479,9 +479,6 @@ def progress(repository, accounts, exclude, date, verbose, min_comments, max_com
             [['comments', 'empty comments', 'patterns', 'dispersion','prediction']]
         )
 
-    prediction_progress.close()
-    
-
     if output_type == 'json':
         return (result.reset_index().to_json(orient='records'))
     elif output_type == 'csv':
