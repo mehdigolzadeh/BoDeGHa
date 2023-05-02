@@ -160,17 +160,17 @@ def extract_data(data, date_limit, issue_type='issues'):
         if date is None:
             continue
         if date > date_limit:
-            df = df.append({
+            df = pandas.concat([df, pandas.DataFrame([{
                 'author': (issue['author']['login'] if (issue['author'] is not None) else np.nan),
                 'body': (issue['body'] if issue['body'] is not None else ""),
                 'number': issue['number'],
                 'created_at': date,
                 'type': issue_type,
                 'empty': (1 if len(issue['body']) < 2 else 0)
-            }, ignore_index=True)
+            }])], ignore_index=True)
             for comment in issue['comments']['edges']:
                 comment = comment['node']
-                df = df.append({
+                df = pandas.concat([df, pandas.DataFrame([{
                     'author': (
                         comment['author']['login'] if (comment['author'] is not None) else np.nan
                         ),
@@ -179,7 +179,7 @@ def extract_data(data, date_limit, issue_type='issues'):
                     'created_at': dateutil.parser.parse(comment['createdAt'], ignoretz=True),
                     'type': issue_type + "_comment",
                     'empty': (1 if len(comment['body']) < 2 else 0)
-                }, ignore_index=True)
+                }])], ignore_index=True)
         else:
             last_date = date
     return df, issue_total, issue_count, start_cursor, last_date
@@ -218,11 +218,11 @@ def process_comments(repository, accounts, date, min_comments, max_comments, api
         if pr:
             df_pr, pr_total, pr_count, pr_end_cursor, last_pr \
                 = extract_data(data, date, 'pullRequests')
-            comments = comments.append(df_pr, ignore_index=True)
+            comments = pandas.concat([comments, df_pr], ignore_index=True)
         if issue:
             df_issues, issue_total, issue_count, issue_end_cursor, last_issue = \
                 extract_data(data, date, 'issues')
-            comments = comments.append(df_issues, ignore_index=True)
+            comments = pandas.concat([comments, df_issues], ignore_index=True)
 
         if len(comments)>0:
             downloaded_issues = \
@@ -469,7 +469,7 @@ def progress(repository, accounts, exclude, date, verbose, min_comments, max_com
         result=pandas.DataFrame(columns = ['account', 'comments', 'empty comments', 'patterns', 'dispersion'])
 
     if only_predicted == True:
-        result = result.append(  
+        result = pandas.concat([result,
             (
                 comments[lambda x: ~x['author'].isin(result['account'])][['author','body']]
                 .groupby('author', as_index=False)
@@ -481,18 +481,18 @@ def progress(repository, accounts, exclude, date, verbose, min_comments, max_com
                     prediction="Unknown",
                 )
                 .rename(columns={'author':'account','body':'comments','emptycomments':'empty comments'})
-            ),ignore_index=True,sort=True)
-        
+            )],ignore_index=True,sort=True)
+
         for identity in (set(accounts) - set(result['account'])):
-            result = result.append({
+            result = pandas.concat([result, {
                 'account': identity,
                 'comments':np.nan,
                 'empty comments':np.nan,
                 'patterns':np.nan,
                 'dispersion':np.nan,
                 'prediction':"Not found",
-            },ignore_index=True,sort=True)
-    
+            }],ignore_index=True,sort=True)
+
     if verbose is False:
         result = result.set_index('account')[['prediction']]
     else:
