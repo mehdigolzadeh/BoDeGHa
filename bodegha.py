@@ -38,7 +38,8 @@ except ImportError:
     from urllib2 import urlopen, Request
 import argparse
 from tqdm import tqdm
-
+import time
+from urllib.error import HTTPError
 
 # --- Exception ---
 class BodeghaError(ValueError):
@@ -190,8 +191,29 @@ def process_comments(repository, accounts, date, min_comments, max_comments, api
     issue = True
     beforePr = None
     beforeIssue = None
+    queryCounter = 0
     while True:
-        data = download_comments(repository, apikey, pr, issue, beforePr, beforeIssue)
+        queryCounter += 1
+
+        # To prevent exceeding the rate limit of the GitHub GraphQL API, make sure that the rate limit score
+        # for this script stays below GitHub's limit. For more details, see the following documentation:
+        # https://docs.github.com/en/graphql/overview/resource-limitations
+        # Wait for one hour if the number of queries is close to the limit, to make sure that the score gets reset.
+        if queryCounter > 19:
+            queryCounter = 0
+            time.sleep(3700)
+
+        try:
+            data = download_comments(repository, apikey, pr, issue, beforePr, beforeIssue)
+        except HTTPError as err:
+            # If the rate limit score of the GitHub GraphQL API exceeds the rate limit,
+            # an HTTP 502 error is raised. If so, wait an hour to make sure that the score is properly
+            # reset in order to continue.
+            if err.code == 502:
+                time.sleep(3700)
+                data = download_comments(repository, apikey, pr, issue, beforePr, beforeIssue)
+            else:
+                raise
 
         if pr:
             df_pr, pr_total, pr_count, pr_end_cursor, last_pr \
