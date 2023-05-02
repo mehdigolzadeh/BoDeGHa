@@ -208,12 +208,12 @@ def process_comments(repository, accounts, date, min_comments, max_comments, api
             downloaded_prs = \
                 len(comments[lambda x: x['type'] == 'pullRequests'].drop_duplicates('number'))
 
-        if last_issue is None and issue_total > downloaded_issues:
+        if issue and last_issue is None and issue_total > downloaded_issues:
             issue = True
             beforeIssue = issue_end_cursor
         else:
             issue = False
-        if last_pr is None and pr_total > downloaded_prs:
+        if pr and last_pr is None and pr_total > downloaded_prs:
             pr = True
             beforePr = pr_end_cursor
         else:
