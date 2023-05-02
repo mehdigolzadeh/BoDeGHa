@@ -234,6 +234,7 @@ def download_comments(repository, apikey, pr=True, issue=True, beforePr=None, be
                 }
             ).encode('utf-8')
         )
+    req.add_header("User-Agent", "Mozilla/5.0")
     req.add_header("Accept", "application/json")
     req.add_header("Content-Type", "application/json")
     req.add_header("Authorization", "Bearer {}".format(apikey))
