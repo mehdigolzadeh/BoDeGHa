@@ -38,7 +38,8 @@ except ImportError:
     from urllib2 import urlopen, Request
 import argparse
 from tqdm import tqdm
-
+import time
+from urllib.error import HTTPError
 
 # --- Exception ---
 class BodeghaError(ValueError):
@@ -159,17 +160,17 @@ def extract_data(data, date_limit, issue_type='issues'):
         if date is None:
             continue
         if date > date_limit:
-            df = df.append({
+            df = pandas.concat([df, pandas.DataFrame([{
                 'author': (issue['author']['login'] if (issue['author'] is not None) else np.nan),
                 'body': (issue['body'] if issue['body'] is not None else ""),
                 'number': issue['number'],
                 'created_at': date,
                 'type': issue_type,
                 'empty': (1 if len(issue['body']) < 2 else 0)
-            }, ignore_index=True)
+            }])], ignore_index=True)
             for comment in issue['comments']['edges']:
                 comment = comment['node']
-                df = df.append({
+                df = pandas.concat([df, pandas.DataFrame([{
                     'author': (
                         comment['author']['login'] if (comment['author'] is not None) else np.nan
                         ),
@@ -178,7 +179,7 @@ def extract_data(data, date_limit, issue_type='issues'):
                     'created_at': dateutil.parser.parse(comment['createdAt'], ignoretz=True),
                     'type': issue_type + "_comment",
                     'empty': (1 if len(comment['body']) < 2 else 0)
-                }, ignore_index=True)
+                }])], ignore_index=True)
         else:
             last_date = date
     return df, issue_total, issue_count, start_cursor, last_date
@@ -190,17 +191,42 @@ def process_comments(repository, accounts, date, min_comments, max_comments, api
     issue = True
     beforePr = None
     beforeIssue = None
+    queryCounter = 0
     while True:
-        data = download_comments(repository, apikey, pr, issue, beforePr, beforeIssue)
+        queryCounter += 1
+
+        # To prevent exceeding the rate limit of the GitHub GraphQL API, make sure that the rate limit score
+        # for this script stays below GitHub's limit. For more details, see the following documentation:
+        # https://docs.github.com/en/graphql/overview/resource-limitations
+        # Wait for one hour if the number of queries is close to the limit, to make sure that the score gets reset.
+        if queryCounter > 19:
+            queryCounter = 0
+            tqdm.write("Wait for one hour, to prevent exceeding the rate limit of GitHub...")
+            time.sleep(3700)
+            tqdm.write("Continue downloading...")
+
+        try:
+            data = download_comments(repository, apikey, pr, issue, beforePr, beforeIssue)
+        except HTTPError as err:
+            # If the rate limit score of the GitHub GraphQL API exceeds the rate limit,
+            # an HTTP 502 error is raised. If so, wait an hour to make sure that the score is properly
+            # reset in order to continue.
+            if err.code == 502:
+                tqdm.write("Wait for one hour, to prevent exceeding the rate limit of GitHub...")
+                time.sleep(3700)
+                tqdm.write("Continue downloading...")
+                data = download_comments(repository, apikey, pr, issue, beforePr, beforeIssue)
+            else:
+                raise
 
         if pr:
             df_pr, pr_total, pr_count, pr_end_cursor, last_pr \
                 = extract_data(data, date, 'pullRequests')
-            comments = comments.append(df_pr, ignore_index=True)
+            comments = pandas.concat([comments, df_pr], ignore_index=True)
         if issue:
             df_issues, issue_total, issue_count, issue_end_cursor, last_issue = \
                 extract_data(data, date, 'issues')
-            comments = comments.append(df_issues, ignore_index=True)
+            comments = pandas.concat([comments, df_issues], ignore_index=True)
 
         if len(comments)>0:
             downloaded_issues = \
@@ -208,12 +234,12 @@ def process_comments(repository, accounts, date, min_comments, max_comments, api
             downloaded_prs = \
                 len(comments[lambda x: x['type'] == 'pullRequests'].drop_duplicates('number'))
 
-        if last_issue is None and issue_total > downloaded_issues:
+        if issue and last_issue is None and issue_total > downloaded_issues:
             issue = True
             beforeIssue = issue_end_cursor
         else:
             issue = False
-        if last_pr is None and pr_total > downloaded_prs:
+        if pr and last_pr is None and pr_total > downloaded_prs:
             pr = True
             beforePr = pr_end_cursor
         else:
@@ -234,6 +260,7 @@ def download_comments(repository, apikey, pr=True, issue=True, beforePr=None, be
                 }
             ).encode('utf-8')
         )
+    req.add_header("User-Agent", "Mozilla/5.0")
     req.add_header("Accept", "application/json")
     req.add_header("Content-Type", "application/json")
     req.add_header("Authorization", "Bearer {}".format(apikey))
@@ -446,7 +473,7 @@ def progress(repository, accounts, exclude, date, verbose, min_comments, max_com
         result=pandas.DataFrame(columns = ['account', 'comments', 'empty comments', 'patterns', 'dispersion'])
 
     if only_predicted == True:
-        result = result.append(  
+        result = pandas.concat([result,
             (
                 comments[lambda x: ~x['author'].isin(result['account'])][['author','body']]
                 .groupby('author', as_index=False)
@@ -458,18 +485,18 @@ def progress(repository, accounts, exclude, date, verbose, min_comments, max_com
                     prediction="Unknown",
                 )
                 .rename(columns={'author':'account','body':'comments','emptycomments':'empty comments'})
-            ),ignore_index=True,sort=True)
-        
+            )],ignore_index=True,sort=True)
+
         for identity in (set(accounts) - set(result['account'])):
-            result = result.append({
+            result = pandas.concat([result, {
                 'account': identity,
                 'comments':np.nan,
                 'empty comments':np.nan,
                 'patterns':np.nan,
                 'dispersion':np.nan,
                 'prediction':"Not found",
-            },ignore_index=True,sort=True)
-    
+            }],ignore_index=True,sort=True)
+
     if verbose is False:
         result = result.set_index('account')[['prediction']]
     else:
