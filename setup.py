@@ -4,7 +4,7 @@ from codecs import open # To use a consistent encoding
 
 
 __package__ = 'bodegha'
-__version__ = '1.0.2'
+__version__ = '1.0.3'
 __licence__ = 'LGPL3'
 __maintainer__ = 'Mehdi Golzadeh'
 __email__ = 'golzadeh.mehdi@gmail.com'
