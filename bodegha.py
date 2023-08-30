@@ -25,6 +25,7 @@ import threading
 from Levenshtein import distance as lev
 import itertools
 from sklearn.cluster import DBSCAN
+import warnings
 import json
 import sys
 import dateutil
@@ -336,10 +337,12 @@ def count_empty_comments(comments):
 
 # --- Load model and prediction ---
 def get_model():
+    warnings.filterwarnings("ignore")
     path = 'model.json'
     filename = pkg_resources.resource_filename(__name__, path)
     with open(filename, 'rb') as file:
         model = pickle.load(file)
+
     return model
 
 
