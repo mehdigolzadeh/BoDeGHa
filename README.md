@@ -1,3 +1,5 @@
+[![SWH](https://archive.softwareheritage.org/badge/origin/https://github.com/mehdigolzadeh/BoDeGHa/)](https://archive.softwareheritage.org/browse/origin/?origin_url=https://github.com/mehdigolzadeh/BoDeGHa)
+
 # BoDeGHa 
 _(previously BoDeGa)_
 
