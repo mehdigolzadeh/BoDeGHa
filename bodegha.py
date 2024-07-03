@@ -192,19 +192,12 @@ def process_comments(repository, accounts, date, min_comments, max_comments, api
     issue = True
     beforePr = None
     beforeIssue = None
-    queryCounter = 0
     while True:
-        queryCounter += 1
 
         # To prevent exceeding the rate limit of the GitHub GraphQL API, make sure that the rate limit score
         # for this script stays below GitHub's limit. For more details, see the following documentation:
         # https://docs.github.com/en/graphql/overview/resource-limitations
-        # Wait for one hour if the number of queries is close to the limit, to make sure that the score gets reset.
-        if queryCounter > 19:
-            queryCounter = 0
-            tqdm.write("Wait for one hour, to prevent exceeding the rate limit of GitHub...")
-            time.sleep(3700)
-            tqdm.write("Continue downloading...")
+        # Wait for one hour if the number of queries is close to the limit, to make sure that the limit gets reset.
 
         try:
             data = download_comments(repository, apikey, pr, issue, beforePr, beforeIssue)
