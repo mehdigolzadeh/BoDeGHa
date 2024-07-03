@@ -192,19 +192,17 @@ def process_comments(repository, accounts, date, min_comments, max_comments, api
     issue = True
     beforePr = None
     beforeIssue = None
-    while True:
-
-        # To prevent exceeding the rate limit of the GitHub GraphQL API, make sure that the rate limit score
-        # for this script stays below GitHub's limit. For more details, see the following documentation:
-        # https://docs.github.com/en/graphql/overview/resource-limitations
-        # Wait for one hour if the number of queries is close to the limit, to make sure that the limit gets reset.
+    while issue or pr:
 
         try:
             data = download_comments(repository, apikey, pr, issue, beforePr, beforeIssue)
         except HTTPError as err:
             # If the rate limit score of the GitHub GraphQL API exceeds the rate limit,
-            # an HTTP 502 error is raised. If so, wait an hour to make sure that the score is properly
+            # an HTTP 502 error is raised.
+            # If so, wait an hour to make sure that the score is properly
             # reset in order to continue.
+            # For more details, see the following documentation:
+            # https://docs.github.com/en/graphql/overview/resource-limitations.
             if err.code == 502:
                 tqdm.write("Wait for one hour, to prevent exceeding the rate limit of GitHub...")
                 time.sleep(3700)
@@ -238,9 +236,6 @@ def process_comments(repository, accounts, date, min_comments, max_comments, api
             beforePr = pr_end_cursor
         else:
             pr = False
-
-        if not issue and not pr:
-            break
 
     return comments
 
