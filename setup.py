@@ -31,7 +31,7 @@ __classifiers__=[
 __requirement__ = [
         'python-dateutil >= 2.7.5',
         'pandas >= 0.23.4',
-        'scikit-learn == 1.0.1',
+        'scikit-learn == 1.5.0',
         'argparse >= 1.1',
         'tqdm >= 4.41.1',
         'urllib3 >= 1.25',
