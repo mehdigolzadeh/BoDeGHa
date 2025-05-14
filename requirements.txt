@@ -1,8 +1,8 @@
 pandas==2.2.1
 numpy==1.26.4
 scikit-learn==1.0.1
-argparse >= 1.1
-tqdm >= 4.41.1
-urllib3 >= 1.25
-python-levenshtein >= 0.12.0
+argparse==1.1
+tqdm==4.41.1
+urllib3==1.25
+python-levenshtein==0.12.0
 python-dateutil==2.9.0.post0
